@@ -1,0 +1,20 @@
+
+BEGIN:VCARD
+VERSION:2.1
+N:Keven
+FN:Chamberland
+
+ORG:Bubba Gump Shrimp Co.
+TITLE:Shrimp Man
+TEL;WORK;VOICE:(844) 749-2513
+
+TEL;HOME;VOICE:(822) 135-3936
+
+ADR;WORK:;;100 Waters Edge;Baytown;LA;30314;United States of America
+LABEL;WORK;ENCODING=QUOTED-PRINTABLE:100 Waters Edge=0D=0ABaytown, LA 30314=0D=0AUnited States of America
+ADR;HOME:;;42 Plantation St.;Baytown;LA;30314;United States of America
+LABEL;HOME;ENCODING=QUOTED-PRINTABLE:42 Plantation St.=0D=0ABaytown, LA 30314=0D=0AUnited States of America
+EMAIL;PREF;INTERNET:mx4t@7d345tmi-k8b.com
+
+REV:20080424T195243Z
+END:VCARD
