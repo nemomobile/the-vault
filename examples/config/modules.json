@@ -1,0 +1,10 @@
+{
+    openclipart : {
+        group : 'pictires',
+        script : '../examples/scripts/openclipart.py'
+    },
+    contacts : {
+        group : 'contacts',
+        script : '../examples/scripts/openclipart.py'
+    },
+}
