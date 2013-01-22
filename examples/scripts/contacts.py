@@ -17,6 +17,7 @@ if args.action == 'export':
     print os.getcwd(), args.home
     src = os.path.join(args.home, 'vcf', 'out', '.')
     print "From:", src
+    shutil.rmtree(args.data)
     shutil.copytree(src, args.data)
 else:
     print "Action {} is not implemented".format(args.action)
