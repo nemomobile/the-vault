@@ -5,6 +5,6 @@
     },
     "contacts" : {
         "group" : "contacts",
-        "script" : "../examples/scripts/contacts.py"
+        "script" : "../examples/scripts/contacts.js"
     }
 }
