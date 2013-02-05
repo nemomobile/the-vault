@@ -1,9 +1,9 @@
 #!/usr/bin/env qtscript
 
 qtscript.use("qt.core")
-qtscript.eval("util.js")
-qtscript.eval("sys.js")
-qtscript.eval("os.js")
+qtscript.load("util.js")
+qtscript.load("sys.js")
+qtscript.load("os.js")
 
 print("CONTACTS backup: ", qtscript.script.args)
 
@@ -21,18 +21,18 @@ var cmdline = lib.sys.getopt({
 var options = cmdline.opts
 var action = options.action;
 var src, dst
-
+var os = lib.os
+var my = lib.os.path(options.home, 'vcf', 'out', '.')
 switch (action) {
 case 'export':
     print("EXPORT")
-    src = lib.os.path(options.home, 'vcf', 'out', '.')
-    lib.os.cptree(src, options.data_dir)
+    src = my
+    os.cptree(src, options.data_dir)
     break;
 case 'import':
     print("IMPORT")
-    var dst = "/home/denis/tmp/test-vault-contacts"
-    lib.os.mkdir(dst)
-    lib.os.cptree(options.data_dir, dst)
+    dst = my
+    os.update_tree(options.data_dir, dst)
     break;
 default:
     throw lib.error({ msg : "Unknown action", action : action});

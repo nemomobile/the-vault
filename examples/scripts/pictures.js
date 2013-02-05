@@ -31,8 +31,8 @@ case 'export':
     break;
 case 'import':
     print("IMPORT")
-    dst = lib.os.path(options.home, 'Pictures')
-    os.cptree(options.bin_dir, dst)
+    dst = lib.os.path(options.home)
+    os.update_tree(lib.os.path(options.bin_dir, 'Pictures'), dst)
     break;
 default:
     throw lib.error({ msg : "Unknown action", action : action});
