@@ -24,26 +24,6 @@ Requires: the-vault
 %description examples
 Examples of backup scripts
 
-%package -n narwhal
-Summary: Narwhal javascript library
-Group: System Environment/Libraries
-%description -n narwhal
-Part of Narwhal javascript library adopted to be used with cutes
-
-%package -n cutes-core
-Summary: QtScript library
-Group: System Environment/Libraries
-Requires: json-js, narwhal
-%description -n cutes-core
-QtScript library providing different functionality
-
-%package -n json-js
-Summary: Canonical javascript json parser
-License: Public Domain
-Group: System Environment/Libraries
-%description -n json-js
-Canonical javascript json parser from Douglas Crockford
-
 %define jslibdir %{_datadir}/cutes
 
 %prep
@@ -53,13 +33,6 @@ Canonical javascript json parser from Douglas Crockford
 
 %install
 rm -rf %{buildroot}
-install -d -D -p -m755 %{buildroot}%{jslibdir}/
-install -D -p -m644 lib/*.js %{buildroot}%{jslibdir}/
-install -d -D -p -m755 %{buildroot}%{jslibdir}/json/
-install -D -p -m644 json/*.js %{buildroot}%{jslibdir}/json/
-install -d -D -p -m755 %{buildroot}%{jslibdir}/narwhal/
-install -D -p -m644 lib/narwhal/*.js %{buildroot}%{jslibdir}/narwhal/
-
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/
 install -D -p -m644 src/*.js %{buildroot}%{_datadir}/the-vault/
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/examples/
@@ -75,18 +48,4 @@ rm -rf %{buildroot}
 %files examples
 %defattr(-,root,root,-)
 %{_datadir}/the-vault/examples/*.js
-
-%files -n cutes-core
-%defattr(-,root,root,-)
-%{jslibdir}/*.js
-
-%files -n json-js
-%defattr(-,root,root,-)
-%{jslibdir}/json/*.js
-%doc json/README
-
-%files -n narwhal
-%defattr(-,root,root,-)
-%{jslibdir}/narwhal/*.js
-%doc README-narwhal.md
 
