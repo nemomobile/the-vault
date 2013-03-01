@@ -374,6 +374,20 @@ var mk_vault = function(path) {
         }
     };
 
+    var checkout = function(treeish) {
+        vcs.checkout(treeish);
+    };
+
+    var register = function(config) {
+        checkout('master');
+        return mk_config().mutable().add(config);
+    };
+
+    var unregister = function(module_name) {
+        checkout('master');
+        return mk_config().mutable().rm(module_name);
+    };
+
     return Object.create({
         /// init vault git repository
         init : init,
@@ -385,7 +399,9 @@ var mk_vault = function(path) {
         snapshots : snapshots,
         /// returns repository configuration
         config : mk_config,
-        checkout : function(treeish) { vcs.checkout(treeish) }
+        checkout : checkout,
+        register : register,
+        unregister : unregister
     });
 };
 
@@ -443,16 +459,14 @@ mk_vault.execute = function(options) {
         print(res.join('\n'));
         break;
     case 'register':
-        vault.checkout('master');
         if (!options.data)
             error.raise({ action : action, msg : "Needs data" });
-        res = vault.config().mutable().add(parse_kv_pairs(options.data));
+        vault.register(parse_kv_pairs(options.data));
         break;
     case 'unregister':
-        vault.checkout('master');
         if (!options.module)
             error.raise({ action : action, msg : "Needs module name" });
-        res = vault.config().mutable().rm(options.module);
+        res = vault.unregister(options.module);
         break;
     default:
         error.raise({ msg : "Unknown action", action : action});
