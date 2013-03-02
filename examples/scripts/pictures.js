@@ -1,4 +1,4 @@
-#!/usr/bin/env qtscript
+#!/usr/bin/env cutes
 
 qtscript.use("qt.core")
 qtscript.load("util.js")
