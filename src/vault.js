@@ -150,6 +150,7 @@ var mk_vault = function(path) {
                         error.raise({
                             msg : "Module description should contain"
                                 + " name and script"});
+                    desc.script = os.path.canonical(desc.script);
                     config[name] = desc;
                     save();
                     vcs.add(config_fname);
@@ -222,9 +223,12 @@ var mk_vault = function(path) {
         /// execute backup script registered for the module
         var exec_script = function(action) {
             debug.debug('script', config.script, 'action', action);
+            if (!os.path.isexec(config.script))
+                error.raise({msg : "Should be executable"
+                            , script : config.script});
             var args = ['--action', action,
-                        '--dir', data_dir,
-                        '--bin-dir', blobs_dir,
+                        '--dir', data_dir.absolute,
+                        '--bin-dir', blobs_dir.absolute,
                         '--home-dir', home ];
             debug.info(subprocess.check_output(config.script, args));
         };
@@ -268,14 +272,14 @@ var mk_vault = function(path) {
             });
 
             // commit data
-            status = vcs.status(root_dir);
+            status = vcs.status(root_dir.relative);
             if (!status.length) {
                 debug.info("Nothing to backup for " + name);
                 return;
             }
 
-            vcs.add(root_dir, ['-A']);
-            status = vcs.status(root_dir);
+            vcs.add(root_dir.relative, ['-A']);
+            status = vcs.status(root_dir.relative);
             if (is_tree_dirty(status))
                 error.raise({msg : "Dirty tree",
                              dir : root_dir,
@@ -283,7 +287,7 @@ var mk_vault = function(path) {
 
             vcs.commit(">" + name);
 
-            status = vcs.status(root_dir);
+            status = vcs.status(root_dir.relative);
             if (isnt_commited(status))
                 error.raise({msg : "Not fully commited",
                              dir : root_dir,
@@ -388,6 +392,13 @@ var mk_vault = function(path) {
         return mk_config().mutable().rm(module_name);
     };
 
+    var module_path = function(name) {
+        return Object.create({
+            bin : vcs.path.curry(name, 'blobs'),
+            data : vcs.path.curry(name, 'data')
+        });
+    };
+
     return Object.create({
         /// init vault git repository
         init : init,
@@ -401,7 +412,8 @@ var mk_vault = function(path) {
         config : mk_config,
         checkout : checkout,
         register : register,
-        unregister : unregister
+        unregister : unregister,
+        module_path : module_path
     });
 };
 
