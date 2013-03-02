@@ -36,9 +36,11 @@ make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
+make install  DESTDIR=%{buildroot}
+
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/
-install -D -p -m644 src/*.js %{buildroot}%{_datadir}/the-vault/
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/examples/
+
 install -D -p -m644 examples/scripts/pictures.js %{buildroot}%{_datadir}/the-vault/examples/
 
 %clean
@@ -46,9 +48,12 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{_datadir}/the-vault/*.js
+%{_datadir}/cutes/the-vault/*.js
 
 %files examples
 %defattr(-,root,root,-)
 %{_datadir}/the-vault/examples/*.js
+
+%post examples
+cutes /usr/share/cutes/the-vault/vault-cli.js -V /home/nemo -a register --data=name=picture,group=media,script=%{_datadir}/the-vault/examples/pictures.js
 
