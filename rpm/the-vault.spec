@@ -31,6 +31,8 @@ Examples of backup scripts
 %setup -q
 
 %build
+%cmake
+make %{?jobs:-j%jobs}
 
 %install
 rm -rf %{buildroot}
