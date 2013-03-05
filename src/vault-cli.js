@@ -25,14 +25,15 @@
 var sys = require("sys.js");
 var vault = require("vault.js");
 var cmdline = sys.getopt({
-    vault : { short_ : "V", long_ : "vault"
-              , has_param : true, required : true },
+    vault : { short_ : "V", long_ : "vault", has_param : true },
+    global : { short_ : "G", long_ : "global" },
     action : { short_ : "a", long_ : "action"
                , has_param : true, required : true },
 
     home : { short_ : "H", long_ : "home", has_param : true },
     git_config : { short_ : "g", long_ : "git-config", has_param : true },
-    config_path : { short_ : "c", long_ : "config-path", has_param : true },
+    config_path : { short_ : "c", long_ : "config-path"
+                  , has_param : true, default_ : '/etc/the-vault.json' },
     message : { short_ : "m", long_ : "message", has_param : true},
     tag : { short_ : "t", long_ : "tag", has_param : true },
     module : { short_ : "M", long_ : "module", has_param : true },

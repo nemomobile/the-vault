@@ -23,7 +23,6 @@
  */
 
 require("qtcore.js");
-require("json/json2.js");
 
 var sys = require("sys.js");
 var os = require("os.js");
@@ -32,6 +31,11 @@ var util = require("util.js");
 var error = require("error.js");
 var debug = require("debug.js");
 var git = require("git.js");
+var conf_access = require('config');
+
+var sys_config = {
+    modules_dir : '/var/lib/the-vault'
+};
 
 Date.method('toGitTag', function() {
     return this.toISOString().replace(/:/g, '-');
@@ -53,6 +57,103 @@ var mk_snapshots = function(vcs) {
     });
     return that;
 };
+
+var module_config = function(data) {
+    var that;
+    var read = function(fname) {
+        return conf_access.read(fname);
+    };
+    var write = function(fname) {
+        return conf_access.write(that, fname);
+    };
+    var assign = function(data) {
+        if (data.is_module_config) {
+            that = data;
+            return;
+        }
+        if (!(data.name && data.script))
+            error.raise({
+                msg : "Module description should contain"
+                    + " name and script"});
+        data.script = os.path.canonical(data.script);
+        data.each(function(n, v) { that[n] = v; });
+    };
+    that = Object.create({
+        read : read,
+        write : write,
+        assign : assign,
+        is_module_config : true
+    });
+    data && assign(data);
+    return that;
+};
+
+/**
+ * load or initialize vault configuration describing
+ * registered backup modules. Configuration is read-only,
+ * mutable() method returns object to modify it
+ */
+var mk_vault_config = function(vcs) {
+    var path = vcs.root();
+    var config_fname = ".config";
+    var config_path = os.path(path, config_fname);
+    var config, res;
+    config = conf_access.read(config_path) || {};
+    var save = function() {
+        return conf_access.write(config, config_path);
+    };
+
+    res = {};
+
+    res.modules = function() { return config; };
+
+    var is_update = function(actual, other) {
+        var res = false;
+        other.until(function(n, v) {
+            return (!(n in actual) || v !== actual[n]);
+        });
+        return res;
+    };
+
+    /// create wrapper to change configuration
+    res.mutable = function() {
+        var that;
+        var add  = function(data) {
+            data = module_config(data);
+
+            var name = data.name;
+            if (name in config && is_update(config[name], data))
+                return false;
+
+            config[name] = data;
+            save();
+            vcs.add(config_fname);
+            vcs.commit("+" + name);
+            return true;
+        };
+        var rm = function(name) {
+            if (name && (name in config)) {
+                delete config[name];
+                save();
+                vcs.rm(config_fname);
+                vcs.commit("-" + name);
+            } else {
+                error.raise({
+                    msg : "Can't delete non-existing module",
+                    name : name });
+            }
+        };
+
+        that = Object.create({
+            add : add,
+            rm : rm
+        });
+        return that;
+    };
+
+    return res;
+};
+
 
 var mk_vault = function(path) {
 
@@ -120,67 +221,8 @@ var mk_vault = function(path) {
         vcs.tag(['>latest']);
     };
 
-    /**
-     * load or initialize vault configuration describing
-     * registered backup modules. Configuration is read-only,
-     * mutable() method returns object to modify it
-     */
-    var mk_config = function() {
-        var config_fname = ".config";
-        var config_path = os.path(path, config_fname);
-        var config, res;
-        config = (os.path.isfile(config_path)
-                  ? JSON.parse(os.read_file(config_path))
-                  : {});
-        var save = function() {
-            os.write_file(config_path, JSON.stringify(config, null, '\t'));
-        };
-
-        res = {};
-
-        res.modules = function() { return config; };
-
-        /// create wrapper to change configuration
-        res.mutable = function() {
-            var that;
-            that = Object.create({
-                add : function(desc) {
-                    var name = desc.name;
-                    if (!(name && desc.script))
-                        error.raise({
-                            msg : "Module description should contain"
-                                + " name and script"});
-                    desc.script = os.path.canonical(desc.script);
-                    config[name] = desc;
-                    save();
-                    vcs.add(config_fname);
-                    vcs.commit("+" + name);
-                },
-                rm : function(name) {
-                    if (name && (name in config)) {
-                        delete config[name];
-                        save();
-                        vcs.rm(config_fname);
-                        vcs.commit("-" + name);
-                    } else {
-                        error.raise({
-                            msg : "Can't delete non-existing module",
-                            name : name });
-                    }
-                }
-            });
-            return that;
-        };
-
-        return res;
-    };
-
-    /// lazy vault configuration loading/initialization
-    var init_config = function() {
-        return mk_config();
-        // if (modules_config == null)
-        //     modules_config = mk_config()
-        // return modules_config
+    var vault_config = function() {
+        return mk_vault_config(vcs);
     };
 
     var blob = function(git_path) {
@@ -302,7 +344,7 @@ var mk_vault = function(path) {
 
     var backup = function(home, options, on_progress) {
         var res = { succeeded :[], failed : [] };
-        var config = init_config();
+        var config = vault_config();
         var start_time_tag = sys.date().toGitTag();
         var name, message;
 
@@ -349,7 +391,7 @@ var mk_vault = function(path) {
     };
 
     var restore = function(home, options, on_progress) {
-        var config = init_config();
+        var config = vault_config();
         var res = { succeeded :[], failed : [] };
         var name;
 
@@ -384,12 +426,12 @@ var mk_vault = function(path) {
 
     var register = function(config) {
         checkout('master');
-        return mk_config().mutable().add(config);
+        return vault_config().mutable().add(config);
     };
 
     var unregister = function(module_name) {
         checkout('master');
-        return mk_config().mutable().rm(module_name);
+        return vault_config().mutable().rm(module_name);
     };
 
     var module_path = function(name) {
@@ -409,7 +451,7 @@ var mk_vault = function(path) {
         restore : restore,
         snapshots : snapshots,
         /// returns repository configuration
-        config : mk_config,
+        config : vault_config,
         checkout : checkout,
         register : register,
         unregister : unregister,
@@ -443,7 +485,53 @@ var results = (function() {
     return that;
 }).call();
 
-mk_vault.execute = function(options) {
+var global_config = function() {
+    var root = sys_config.modules_dir;
+    var path = function(name) { return os.path(root, name); };
+    var register = function(data) {
+        os.path.exists(root) || os.mkdir(root);
+        data = module_config(data);
+        data.write(path(data.name + '.json'));
+    };
+    var unregister = function(name) {
+        os.rm(path(name + '.json'));
+    };
+    return Object.create({
+        register : register,
+        unregister: unregister
+    });
+};
+
+var execute_global = function(options) {
+    var action = options.action;
+    var config = global_config();
+
+    switch (action) {
+    case 'register':
+        if (!options.data)
+            error.raise({ action : action, msg : "Needs data" });
+
+        config.register(parse_kv_pairs(options.data));
+        break;
+    case 'unregister':
+        if (!options.module)
+            error.raise({ action : action, msg : "Needs module name" });
+
+        config.unregister(options.module);
+        break;
+    default:
+        error.raise({ msg : "Unknown action", action : action});
+        break;
+    }
+};
+
+var execute = function(options) {
+    if (options.global)
+        return execute_global(options);
+
+    if(!options.vault)
+        error.raise({msg : "Missing option", name : "vault"});
+
     var vault = mk_vault(options.vault);
     var action = options.action;
     var res, modules = options.module ? [options.module] : undefined;
@@ -487,4 +575,8 @@ mk_vault.execute = function(options) {
     return res;
 };
 
-exports = mk_vault;
+exports = Object.create({
+    use : mk_vault,
+    execute : execute,
+    config : sys_config
+});
