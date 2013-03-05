@@ -1,6 +1,6 @@
 Summary: Backup/restore middleware and cli
 Name: the-vault
-Version: 0.4
+Version: 0.5
 Release: 1
 License: LGPL21
 Group: System Environment/Tools
@@ -8,7 +8,8 @@ URL: https://github.com/nemomobile/the-vault
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes
+Requires: cutes >= 0.6.1
+Requires: cutes.js >= 0.5
 Requires: qtscriptbindings-core
 BuildRequires: cmake
 
