@@ -20,7 +20,7 @@ fixture.addSetup(function() {
             os.rmtree(home);
     });
 
-    api = require('vault');
+    api = require('vault/vault');
     api.config.modules_dir = global_mod_dir;
     os.mkdir(global_mod_dir);
     vault = api.use(vault_dir);
