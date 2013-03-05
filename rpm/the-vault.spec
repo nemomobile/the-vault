@@ -55,5 +55,5 @@ rm -rf %{buildroot}
 %{_datadir}/the-vault/examples/*.js
 
 %post examples
-cutes /usr/share/cutes/the-vault/vault-cli.js -V /home/nemo -a register --data=name=picture,group=media,script=%{_datadir}/the-vault/examples/pictures.js
+cutes /usr/share/cutes/the-vault/vault-cli.js -G -a register --data=name=picture,group=media,icon=icon-launcher-gallery,script=%{_datadir}/the-vault/examples/pictures.js
 
