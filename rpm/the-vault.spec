@@ -49,7 +49,7 @@ rm -rf %{buildroot}
 
 %files
 %defattr(-,root,root,-)
-%{_datadir}/cutes/the-vault/*.js
+%{_datadir}/cutes/vault/*.js
 
 %files examples
 %defattr(-,root,root,-)
