@@ -422,12 +422,14 @@ var execute = function(options) {
     case 'init':
         res = vault.init(parse_kv_pairs(options.git_config));
         break;
+    case 'export':
     case 'backup':
         res = vault.backup(options.home,
                            {units : units,
                             message : options.message},
                            results);
         break;
+    case 'import':
     case 'restore':
         if (!options.tag)
             error.raise({msg : "tag should be provided to restore"});
