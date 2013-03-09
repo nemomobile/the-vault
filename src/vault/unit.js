@@ -10,7 +10,7 @@ var getopt = function() {
                  required : true, has_param : true},
         action : { short_ : "a", long_ : "action",
                    required : true, has_param : true}
-    }).parse(qtscript.script.args);
+    }).parse(qtscript.script.args).opts;
 };
 
 var config = function(vault_dir) {
@@ -25,8 +25,7 @@ var config = function(vault_dir) {
     return that;
 };
 
-var execute = function(context) {
-    var options = getopt().opts;
+var execute = function(options, context) {
     var action = options.action;
     var src, dst;
     var os = require('os');

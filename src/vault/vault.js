@@ -31,11 +31,7 @@ var util = require("util.js");
 var error = require("error.js");
 var debug = require("debug.js");
 var git = require("git.js");
-var conf_access = require('config');
-
-var sys_config = {
-    modules_dir : '/var/lib/the-vault'
-};
+var cfg = require('vault/config');
 
 Date.method('toGitTag', function() {
     return this.toISOString().replace(/:/g, '-');
@@ -57,103 +53,6 @@ var mk_snapshots = function(vcs) {
     });
     return that;
 };
-
-var module_config = function(data) {
-    var that;
-    var read = function(fname) {
-        return conf_access.read(fname);
-    };
-    var write = function(fname) {
-        return conf_access.write(that, fname);
-    };
-    var assign = function(data) {
-        if (data.is_module_config) {
-            that = data;
-            return;
-        }
-        if (!(data.name && data.script))
-            error.raise({
-                msg : "Module description should contain"
-                    + " name and script"});
-        data.script = os.path.canonical(data.script);
-        data.each(function(n, v) { that[n] = v; });
-    };
-    that = Object.create({
-        read : read,
-        write : write,
-        assign : assign,
-        is_module_config : true
-    });
-    data && assign(data);
-    return that;
-};
-
-/**
- * load or initialize vault configuration describing
- * registered backup modules. Configuration is read-only,
- * mutable() method returns object to modify it
- */
-var mk_vault_config = function(vcs) {
-    var path = vcs.root();
-    var config_fname = ".config";
-    var config_path = os.path(path, config_fname);
-    var config, res;
-    config = conf_access.read(config_path) || {};
-    var save = function() {
-        return conf_access.write(config, config_path);
-    };
-
-    res = {};
-
-    res.modules = function() { return config; };
-
-    var is_update = function(actual, other) {
-        var res = false;
-        other.until(function(n, v) {
-            return (!(n in actual) || v !== actual[n]);
-        });
-        return res;
-    };
-
-    /// create wrapper to change configuration
-    res.mutable = function() {
-        var that;
-        var add  = function(data) {
-            data = module_config(data);
-
-            var name = data.name;
-            if (name in config && is_update(config[name], data))
-                return false;
-
-            config[name] = data;
-            save();
-            vcs.add(config_fname);
-            vcs.commit("+" + name);
-            return true;
-        };
-        var rm = function(name) {
-            if (name && (name in config)) {
-                delete config[name];
-                save();
-                vcs.rm(config_fname);
-                vcs.commit("-" + name);
-            } else {
-                error.raise({
-                    msg : "Can't delete non-existing module",
-                    name : name });
-            }
-        };
-
-        that = Object.create({
-            add : add,
-            rm : rm
-        });
-        return that;
-    };
-
-    return res;
-};
-
 
 var mk_vault = function(path) {
 
@@ -222,7 +121,7 @@ var mk_vault = function(path) {
     };
 
     var vault_config = function() {
-        return mk_vault_config(vcs);
+        return cfg.vault(vcs);
     };
 
     var blob = function(git_path) {
@@ -249,8 +148,8 @@ var mk_vault = function(path) {
         });
     };
 
-    /// functionality related to specific module
-    var mk_module = function(config, home) {
+    /// functionality related to specific unit
+    var mk_unit = function(config, home) {
         var name = config.name;
         var root_dir = vcs.path(name);
         var data_dir = root_dir.path("data");
@@ -262,7 +161,7 @@ var mk_vault = function(path) {
             vcs.reset(['--hard', treeish]);
         };
 
-        /// execute backup script registered for the module
+        /// execute backup script registered for the unit
         var exec_script = function(action) {
             debug.debug('script', config.script, 'action', action);
             if (!os.path.isexec(config.script))
@@ -348,32 +247,32 @@ var mk_vault = function(path) {
         var start_time_tag = sys.date().toGitTag();
         var name, message;
 
-        var backup_module = function(name) {
+        var backup_unit = function(name) {
             var head_before = vcs.rev_parse('HEAD');
-            var module = mk_module(config.modules()[name], home);
+            var unit = mk_unit(config.units()[name], home);
 
             try {
-                on_progress({ module: name, status: "begin" });
-                module.backup();
-                on_progress({ module: name, status: "ok" });
+                on_progress({ unit: name, status: "begin" });
+                unit.backup();
+                on_progress({ unit: name, status: "ok" });
                 res.succeeded.push(name);
             } catch (err) {
-                err.module = name;
+                err.unit = name;
                 debug.error("Failed to backup " + name + ", reason: "
                             + err.toString());
-                on_progress({ module: name, status: "fail" });
+                on_progress({ unit: name, status: "fail" });
                 res.failed.push(name);
-                module.reset(head_before);
+                unit.reset(head_before);
             }
         };
 
         vcs.checkout('master');
 
-        if (options && options.modules) {
-            options.modules.each(backup_module);
+        if (options && options.units) {
+            options.units.each(backup_unit);
         } else {
-            config.modules().each(function(name, value) {
-                return backup_module(name);
+            config.units().each(function(name, value) {
+                return backup_unit(name);
             });
         }
 
@@ -395,27 +294,27 @@ var mk_vault = function(path) {
         var res = { succeeded :[], failed : [] };
         var name;
 
-        var restore_module = function(name) {
-            var module = mk_module(config.modules()[name], home);
+        var restore_unit = function(name) {
+            var unit = mk_unit(config.units()[name], home);
             try {
-                on_progress({ module: name, status: "begin" });
-                module.restore();
-                on_progress({ module: name, status: "ok" });
+                on_progress({ unit: name, status: "begin" });
+                unit.restore();
+                on_progress({ unit: name, status: "ok" });
                 res.succeeded.push(name);
             } catch (err) {
-                err.module = name;
+                err.unit = name;
                 debug.error("Failed to restore " + name
                             + ", reason: " + err.toString());
-                on_progress({ module: name, status: "fail" });
+                on_progress({ unit: name, status: "fail" });
                 res.failed.push(name);
             }
         };
 
-        if (options && options.modules) {
-            options.modules.each(restore_module);
+        if (options && options.units) {
+            options.units.each(restore_unit);
         } else {
-            config.modules().each(function(name, value) {
-                restore_module(name);
+            config.units().each(function(name, value) {
+                restore_unit(name);
             });
         }
     };
@@ -429,12 +328,12 @@ var mk_vault = function(path) {
         return vault_config().mutable().add(config);
     };
 
-    var unregister = function(module_name) {
+    var unregister = function(unit_name) {
         checkout('master');
-        return vault_config().mutable().rm(module_name);
+        return vault_config().mutable().rm(unit_name);
     };
 
-    var module_path = function(name) {
+    var unit_path = function(name) {
         return Object.create({
             bin : vcs.path.curry(name, 'blobs'),
             data : vcs.path.curry(name, 'data')
@@ -455,7 +354,7 @@ var mk_vault = function(path) {
         checkout : checkout,
         register : register,
         unregister : unregister,
-        module_path : module_path
+        unit_path : unit_path
     });
 };
 
@@ -477,7 +376,7 @@ var results = (function() {
         var dst = (obj.status === 'ok'
                    ? that.succeeded
                    : that.failed);
-        dst.push(obj.module);
+        dst.push(obj.unit);
     };
 
     that.succeeded = [];
@@ -485,39 +384,22 @@ var results = (function() {
     return that;
 }).call();
 
-var global_config = function() {
-    var root = sys_config.modules_dir;
-    var path = function(name) { return os.path(root, name); };
-    var register = function(data) {
-        os.path.exists(root) || os.mkdir(root);
-        data = module_config(data);
-        data.write(path(data.name + '.json'));
-    };
-    var unregister = function(name) {
-        os.rm(path(name + '.json'));
-    };
-    return Object.create({
-        register : register,
-        unregister: unregister
-    });
-};
-
 var execute_global = function(options) {
     var action = options.action;
-    var config = global_config();
+    var config = cfg.system(cfg.global);
 
     switch (action) {
     case 'register':
         if (!options.data)
             error.raise({ action : action, msg : "Needs data" });
 
-        config.register(parse_kv_pairs(options.data));
+        config.set(parse_kv_pairs(options.data));
         break;
     case 'unregister':
-        if (!options.module)
-            error.raise({ action : action, msg : "Needs module name" });
+        if (!options.unit)
+            error.raise({ action : action, msg : "Needs unit name" });
 
-        config.unregister(options.module);
+        config.rm(options.unit);
         break;
     default:
         error.raise({ msg : "Unknown action", action : action});
@@ -534,7 +416,7 @@ var execute = function(options) {
 
     var vault = mk_vault(options.vault);
     var action = options.action;
-    var res, modules = options.module ? [options.module] : undefined;
+    var res, units = options.unit ? [options.unit] : undefined;
 
     switch (action) {
     case 'init':
@@ -542,7 +424,7 @@ var execute = function(options) {
         break;
     case 'backup':
         res = vault.backup(options.home,
-                           {modules : modules,
+                           {units : units,
                             message : options.message},
                            results);
         break;
@@ -551,7 +433,7 @@ var execute = function(options) {
             error.raise({msg : "tag should be provided to restore"});
         vault.snapshots.activate(options.tag);
         res = vault.restore(options.home,
-                            {modules : modules},
+                            {units : units},
                             results);
         break;
     case 'list-snapshots':
@@ -564,9 +446,9 @@ var execute = function(options) {
         vault.register(parse_kv_pairs(options.data));
         break;
     case 'unregister':
-        if (!options.module)
-            error.raise({ action : action, msg : "Needs module name" });
-        res = vault.unregister(options.module);
+        if (!options.unit)
+            error.raise({ action : action, msg : "Needs unit name" });
+        res = vault.unregister(options.unit);
         break;
     default:
         error.raise({ msg : "Unknown action", action : action});
@@ -577,6 +459,5 @@ var execute = function(options) {
 
 exports = Object.create({
     use : mk_vault,
-    execute : execute,
-    config : sys_config
+    execute : execute
 });
