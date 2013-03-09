@@ -42,7 +42,7 @@ make install  DESTDIR=%{buildroot}
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/
 install -d -D -p -m755 %{buildroot}%{_datadir}/the-vault/examples/
 
-install -D -p -m644 examples/scripts/pictures.js %{buildroot}%{_datadir}/the-vault/examples/
+install -D -p -m755 examples/scripts/pictures.js %{buildroot}%{_datadir}/the-vault/examples/
 
 %clean
 rm -rf %{buildroot}
@@ -56,5 +56,5 @@ rm -rf %{buildroot}
 %{_datadir}/the-vault/examples/*.js
 
 %post examples
-cutes /usr/share/cutes/the-vault/vault-cli.js -G -a register --data=name=picture,group=media,icon=icon-launcher-gallery,script=%{_datadir}/the-vault/examples/pictures.js
+cutes /usr/share/cutes/vault/vault-cli.js -G -a register --data=name=picture,group=media,icon=icon-launcher-gallery,script=%{_datadir}/the-vault/examples/pictures.js
 
