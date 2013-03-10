@@ -181,18 +181,6 @@ var mk_vault = function(path) {
         var backup = function() {
             var status, i;
 
-            var is_tree_dirty = function(status) {
-                return util.first(status, function(item) {
-                    return !item.isTreeClean();
-                }) < status.length;
-            };
-
-            var isnt_commited = function(status) {
-                return util.first(status, function(item) {
-                    return !item.isClean();
-                }) < status.length;
-            };
-
             // cleanup directories for data and blobs in
             // the repository
             os.rmtree(data_dir.absolute);
@@ -221,7 +209,7 @@ var mk_vault = function(path) {
 
             vcs.add(root_dir.relative, ['-A']);
             status = vcs.status(root_dir.relative);
-            if (is_tree_dirty(status))
+            if (stat.is_tree_dirty(status))
                 error.raise({msg : "Dirty tree",
                              dir : root_dir,
                              status : status_dump(status) });
@@ -229,7 +217,7 @@ var mk_vault = function(path) {
             vcs.commit(">" + name);
 
             status = vcs.status(root_dir.relative);
-            if (isnt_commited(status))
+            if (stat.is_dirty(status))
                 error.raise({msg : "Not fully commited",
                              dir : root_dir,
                              status : status_dump(status)});
