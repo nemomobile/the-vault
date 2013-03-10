@@ -32,6 +32,7 @@ var error = require("error.js");
 var debug = require("debug.js");
 var git = require("git.js");
 var cfg = require('vault/config');
+var stat = require('vault/status');
 
 Date.method('toGitTag', function() {
     return this.toISOString().replace(/:/g, '-');
@@ -313,12 +314,12 @@ var mk_vault = function(path) {
 
     var register = function(config) {
         checkout('master');
-        return vault_config().mutable().add(config);
+        return vault_config().set(config);
     };
 
     var unregister = function(unit_name) {
         checkout('master');
-        return vault_config().mutable().rm(unit_name);
+        return vault_config().rm(unit_name);
     };
 
     var unit_path = function(name) {

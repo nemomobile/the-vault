@@ -1,6 +1,7 @@
 var os = require("os.js");
 var error = require("error.js");
 var json_config = require('json_config');
+var stat = require('vault/status');
 
 var settings, unit_config, system_config, vault_config, global_config;
 
@@ -56,6 +57,9 @@ system_config = function(settings) {
 
     var load = function() {
         units = {};
+        if (!os.path.exists(root))
+            return;
+
         var d = os.qt.dir(root);
 
         d.entryList(["*" + ext]).each(function(fname) {
@@ -89,16 +93,22 @@ system_config = function(settings) {
         return updated && units[name].write(config_path);
     };
     var rm = function(name) {
-        os.rm(path(name));
+        var fname = path(name);
+        if (!os.path.exists(fname))
+            return null;
+        os.rm(fname);
+        return name + ext;
     };
 
-    load();
     that = Object.create({
         set : set,
         rm: rm,
-        all : function() { return units; }
+        units : function() { return units; },
+        path : path,
+        root : function() { return root; }
     });
 
+    load();
     return that;
 };
 
@@ -108,69 +118,61 @@ system_config = function(settings) {
  * mutable() method returns object to modify it
  */
 vault_config = function(vcs) {
-    var path = vcs.root();
-    var config_fname = ".config";
-    var config_path = os.path(path, config_fname);
-    var config, res;
-    config = json_config.read(config_path) || {};
-    var save = function() {
-        return json_config.write(config, config_path);
+    var root = vcs.root();
+    var config_path = vcs.path('.modules');
+    var base = system_config({units_dir: config_path.absolute});
+
+    var that = Object.create(base);
+
+    var status = vcs.status.curry(root.relative);
+
+    that.set  = function(data) {
+        if (!base.set(data))
+            return false;
+
+        vcs.add(config_path.relative, ['-A']);
+        if (stat.is_dirty(status())) {
+            vcs.commit("+" + data.name);
+        }
+        return true;
     };
 
-    res = {};
+    that.rm = function(name) {
+        var fname = base.rm(name);
+        if (!fname)
+            return false;
 
-    res.units = function() { return config; };
+        fname = config_path.path(fname);
+        vcs.add(fname.relative, ['-u']);
+        if (!stat.is_dirty(status()))
+            error.raise({msg: "Logic error, can't rm vcs path"
+                         , path : fname.relative});
+        vcs.commit("-" + name);
+        return true;
+    };
 
-    var is_update = function(actual, other) {
-        var res = false;
-        other.until(function(n, v) {
-            return (!(n in actual) || v !== actual[n]);
+    that.update = function(src) {
+        var updated = false, units = that.units();
+        src.each(function(n, v) {
+            if (that.set(v))
+                updated = true;
         });
-        return res;
-    };
-
-    /// create wrapper to change configuration
-    res.mutable = function() {
-        var that;
-        var add  = function(data) {
-            data = unit_config(data);
-
-            var name = data.name;
-            if (name in config && is_update(config[name], data))
-                return false;
-
-            config[name] = data;
-            save();
-            vcs.add(config_fname);
-            vcs.commit("+" + name);
-            return true;
-        };
-        var rm = function(name) {
-            if (name && (name in config)) {
-                delete config[name];
-                save();
-                vcs.rm(config_fname);
-                vcs.commit("-" + name);
-            } else {
-                error.raise({
-                    msg : "Can't delete non-existing unit",
-                    name : name });
+        units.each(function(n, v) {
+            if (!(n in src)) {
+                that.rm(n) || error.raise({msg: n + " is not removed??" });
+                updated = true;
             }
-        };
-
-        that = Object.create({
-            add : add,
-            rm : rm
+            return updated;
         });
-        return that;
     };
 
-    return res;
+    return that;
 };
 
 settings = function() {
     var that = Object.create({
-        units : function() { return system_config(that); }
+        system : function() { return system_config(that); },
+        units : function() { return system_config(that).units(); }
     });
     that.units_dir = '/var/lib/the-vault';
     return that;
