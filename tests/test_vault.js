@@ -12,6 +12,7 @@ var global_mod_dir = os.path(home, '.units');
 var vault;
 var api;
 var cfg;
+var unit;
 var fixture = assert.fixture();
 
 fixture.addSetup(function() {
@@ -24,6 +25,7 @@ fixture.addSetup(function() {
 
     api = require('vault/vault');
     cfg = require('vault/config');
+    unit = require('vault/unit');
     cfg.global.units_dir = global_mod_dir;
     os.mkdir(global_mod_dir);
     vault = api.use(vault_dir);
@@ -96,6 +98,12 @@ fixture.execute({
         assert.ok(!('unit1' in vault_config)
                     , util.dump('no unit1 in vault config', vault_config));
     },
+    config_unit : function() {
+        var config = unit.config();
+        config.register("unit1", "./unit1_vault_test.js");
+        config = unit.config(vault_dir);
+        config.register("unit2", "./unit2_vault_test.js");
+    },
     config_update : function() {
         var vault_config;
         os.rmtree(home);
@@ -117,6 +125,5 @@ fixture.execute({
         assert.ok(!('unit2' in vault_config)
                     , util.dump('unit2 should be removed from vault config'
                                , vault_config));
-        throw {};
     }
 });

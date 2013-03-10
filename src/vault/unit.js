@@ -14,15 +14,24 @@ var getopt = function() {
 };
 
 var config = function(vault_dir) {
-    var that = {};
-    var vault = require("the-vault/vault")(vault_dir);
-    that.register = function(name, script) {
-        vault.register({name : name, script : script });
-    };
-    that.unregister = function(name) {
-        vault.unregister(name);
-    };
-    return that;
+    var register, unregister;
+    if (vault_dir !== undefined) {
+        var vault = require("vault/vault").use(vault_dir);
+        register = vault.register;
+        unregister = vault.unregister;
+    } else {
+        var cfg = require('vault/config');
+        register = cfg.global.system().set;
+        unregister = cfg.global.system().rm;
+    }
+    return Object.create({
+        register : function(name, script) {
+            register({name : name, script : script });
+        },
+        unregister : function(name) {
+            unregister(name);
+        }
+    });
 };
 
 var execute = function(options, context) {
