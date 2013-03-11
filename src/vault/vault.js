@@ -48,7 +48,7 @@ var mk_snapshots = function(vcs) {
         list : function() {
             return util.map(util.filter(vcs.tags(), is_id), name);
         },
-        note : function(treeish) { return vcs.notes.get(treeish); },
+        note : function(name) { return vcs.notes.get(id(name)); },
         activate : function(name) { vcs.checkout(id(name)); },
         tag : function(name) { vcs.tag([id(name)]); }
     });
