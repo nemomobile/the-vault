@@ -126,22 +126,23 @@ var mk_vault = function(path) {
     };
 
     var blob = function(git_path) {
-        var sha = vcs.hash_object(git_path)
-        , prefix = sha.slice(0, 2)
-        , id = sha.slice(2)
-        , blob_dir = os.path(blob_storage, prefix)
-        , blob_fname = os.path(blob_dir, id)
-        , link_fname = os.path(vcs.root(), git_path);
+        var sha, prefix, id, blob_dir, blob_fname, link_fname;
+
+        link_fname = os.path(vcs.root(), git_path);
+        sha = vcs.hash_object(git_path);
+        prefix = sha.slice(0, 2);
+        id = sha.slice(2);
+        blob_dir = os.path(blob_storage, prefix);
+        blob_fname = os.path(blob_dir, id);
 
         var add = function() {
-            if (os.path.isfile(blob_fname)) {
+            if (os.path.isFile(blob_fname)) {
                 os.unlink(link_fname);
             } else {
                 os.rename(link_fname, blob_fname);
             }
-            os.symlink(os.path.relative
-                       (blob_fname, os.path.dirname(link_fname))
-                       , link_fname);
+            var target = os.path.relative(blob_fname, os.path.dirname(link_fname));
+            os.symlink(target, link_fname);
         };
 
         return Object.create({
