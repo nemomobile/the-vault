@@ -50,12 +50,15 @@ var execute = function(options, context) {
     };
 
     var import_all = function(get_target, vault_dir) {
-        dst = os.path(get_target(options.home), ".");
-        if (!os.path.isdir(dst))
-            error.raise({msg : "Dir doesn't exist", dir : dst});
+        dst = os.path(get_target(options.home));
+        if (!os.path.isdir(dst)) {
+            if (!os.mkdir(dst))
+                error.raise({msg: "Can't create directory", dir: dst});
+        }
         if (!os.path.isdir(vault_dir))
             error.raise({msg : "Dir doesn't exist", dir : vault_dir});
-        os.update_tree(options.bin_dir, dst);
+
+        os.update_tree(os.path(vault_dir, '.'), dst);
     };
 
     var types = ['bin_dir', 'data_dir'];
