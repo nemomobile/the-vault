@@ -125,5 +125,35 @@ fixture.execute({
         assert.ok(!('unit2' in vault_config)
                     , util.dump('unit2 should be removed from vault config'
                                , vault_config));
+    },
+    simple_blobs : function() {
+        var vault_config;
+        os.rmtree(home);
+        os.mkdir(home);
+        vault_init();
+        register_unit('unit1', false);
+        vault_config = vault.config().units();
+        assert.ok('unit1' in vault_config
+                    , util.dump('no unit1 in vault config', vault_config));
+
+        var unit1_dir = os.path(home, 'unit1');
+        os.mkdir(unit1_dir);
+        var unit1_blob = os.path(unit1_dir, 'blob1');
+        os.write_file(unit1_blob, "1\n2\n3\n");
+        assert.ok(os.path.isdir(unit1_dir), "unit1 is prepared")
+        assert.ok(os.path.isfile(unit1_blob), "unit1 blob is prepared")
+
+        vault.backup(home, {}, function() {});
+        assert.ok(os.path.isdir(unit1_dir), "unit1 is still here");
+        assert.ok(os.path.isfile(unit1_blob), "unit1 blob is still here");
+        var unit1_vault = vault.unit_path('unit1');
+        var unit1_vault_path = unit1_vault.bin().absolute;
+        assert.ok(os.path.isdir(unit1_vault_path), "unit1 is in the vault");
+        var unit1_vault_blob = os.path(unit1_vault_path, 'blob1');
+        assert.ok(os.path.exists(unit1_vault_blob)
+                 , "unit1 blob1 is in the vault");
+        assert.ok(os.path.isSymLink(unit1_vault_blob)
+                 , "unit1 blob1 is symlink");
+
     }
 });
