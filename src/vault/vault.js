@@ -196,7 +196,7 @@ var mk_vault = function(path) {
             // save blobs
             util.forEach(vcs.status(blobs_dir.relative), function(status) {
                 var git_path = status.src;
-                if (status.index == ' ' && status.tree == 'D')
+                if (status.index === ' ' && status.tree === 'D')
                     return vcs.rm(git_path);
 
                 return blob(git_path).add();
