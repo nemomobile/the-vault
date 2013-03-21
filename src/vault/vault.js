@@ -136,6 +136,8 @@ var mk_vault = function(path) {
         blob_fname = os.path(blob_dir, id);
 
         var add = function() {
+            os.path.isDir(blob_dir) || os.mkdir(blob_dir);
+
             if (os.path.isFile(blob_fname)) {
                 os.unlink(link_fname);
             } else {
