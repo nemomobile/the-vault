@@ -136,13 +136,17 @@ var mk_vault = function(path) {
         blob_fname = os.path(blob_dir, id);
 
         var add = function() {
+            var origTime;
             os.path.isDir(blob_dir) || os.mkdir(blob_dir);
+
+            origTime = os.path.lastModified(link_fname);
 
             if (os.path.isFile(blob_fname)) {
                 os.unlink(link_fname);
             } else {
                 os.rename(link_fname, blob_fname);
             }
+            os.path.setLastModified(blob_fname, origTime);
             var target = os.path.relative(blob_fname, os.path.dirname(link_fname));
             os.symlink(target, link_fname);
         };
