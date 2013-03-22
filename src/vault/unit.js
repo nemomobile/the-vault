@@ -46,7 +46,7 @@ var execute = function(options, context) {
             error.raise({msg : "Dir doesn't exist", dir : src});
         if (!os.path.isdir(vault_dir))
             error.raise({msg : "Dir doesn't exist", dir : vault_dir});
-        os.cptree(src, vault_dir);
+        os.cptree(src, vault_dir, {preserve: 'all'});
     };
 
     var import_all = function(get_target, vault_dir) {
@@ -58,7 +58,7 @@ var execute = function(options, context) {
         if (!os.path.isdir(vault_dir))
             error.raise({msg : "Dir doesn't exist", dir : vault_dir});
 
-        os.update_tree(os.path(vault_dir, '.'), dst);
+        os.update_tree(os.path(vault_dir, '.'), dst, {preserve: 'all'});
     };
 
     var types = ['bin_dir', 'data_dir'];

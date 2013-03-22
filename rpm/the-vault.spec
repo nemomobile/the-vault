@@ -9,7 +9,7 @@ Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Requires: cutes >= 0.7.4
-Requires: cutes-js >= 0.7.4
+Requires: cutes-js >= 0.7.5
 Requires: qtscriptbindings-core
 BuildRequires: cmake
 
