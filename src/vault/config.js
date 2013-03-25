@@ -2,6 +2,8 @@ var os = require("os.js");
 var error = require("error.js");
 var json_config = require('json_config');
 var stat = require('vault/status');
+var debug = require("debug");
+var util = require("util");
 
 var settings, unit_config, system_config, vault_config, global_config;
 
@@ -63,8 +65,13 @@ system_config = function(settings) {
         var d = os.qt.dir(root);
 
         d.entryList(["*" + ext]).each(function(fname) {
-            var data = unit_config().read(d.filePath(fname));
-            units[data.name] = data;
+            try {
+                var data = unit_config().read(d.filePath(fname));
+                units[data.name] = data;
+            } catch (e) {
+                debug.error("Loading config " + fname);
+                debug.error(util.dump("Error", e));
+            }
         });
     };
 
