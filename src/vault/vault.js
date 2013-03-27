@@ -341,10 +341,13 @@ var mk_vault = function(path) {
         init : init,
         exists : exists,
         is_invalid : is_invalid,
+        root: path,
+
         /// perform backup
         backup : backup,
         restore : restore,
         snapshots : snapshots,
+
         /// returns repository configuration
         config : vault_config,
         checkout : checkout,
