@@ -104,9 +104,9 @@ var mk_vault = function(path) {
 
     var is_invalid = function() {
         if (!os.path.exists(storage))
-            return { msg : "Can't find .git"};
+            return { msg : "Can't find .git", path: path};
         if (!os.path.isfile(anchor_file))
-            return { msg : "Can't find .vault anchor"};
+            return { msg : "Can't find .vault anchor", path: path};
         return false;
     };
 
