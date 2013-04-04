@@ -51,8 +51,10 @@ var mk_snapshots = function(vcs) {
         },
         note : function(name) { return vcs.notes.get(id(name)); },
         activate : function(name) { vcs.checkout(id(name)); },
-        tag : function(name) { vcs.tag([id(name)]); }
+        tag : function(name) { vcs.tag([id(name)]); },
+        rm : function(name) { vcs.tag(['-d', id(name)], true); }
     });
+
     return that;
 };
 
