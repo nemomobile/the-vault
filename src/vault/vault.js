@@ -33,6 +33,7 @@ var debug = require("debug.js");
 var git = require("git.js");
 var cfg = require('vault/config');
 var stat = require('vault/status');
+var current_vault_version = 2;
 
 Date.method('toGitTag', function() {
     return this.toISOString().replace(/:/g, '-');
@@ -66,6 +67,7 @@ var mk_vault = function(path) {
     var message_file = os.path(path, ".message");
     var snapshots = mk_snapshots(vcs);
     var anchor_file = os.path(path, '.vault');
+    var actual_version, update_version;
 
     var init = function(config) {
         config["status.showUntrackedFiles"] = "all";
@@ -90,7 +92,7 @@ var mk_vault = function(path) {
                     stderr : vcs.stderr()});
 
             vcs.config.set(config);
-            os.write_file(anchor_file, sys.date().toGitTag());
+            os.write_file(anchor_file, String(current_vault_version));
             vcs.add(anchor_file);
             vcs.commit('anchor');
             vcs.tag(['anchor']);
@@ -99,6 +101,21 @@ var mk_vault = function(path) {
             os.rmtree(path);
             throw err;
         }
+    };
+
+    update_version = function(from_version) {
+        // since v2 there is no 'latest' tag
+        if (from_version < 2)
+            snapshots.rm('latest');
+
+        os.write_file(anchor_file, String(current_vault_version));
+        vcs.add(anchor_file);
+        vcs.commit('vault format version');
+    };
+
+    actual_version = function() {
+        var data = os.read_file(anchor_file).toString();
+        return (data.isDecimal() ? parseInt(data, 10) : 0);
     };
 
     var exists = function() {
@@ -332,6 +349,12 @@ var mk_vault = function(path) {
             data : vcs.path.curry(name, 'data')
         });
     };
+
+    if (exists() && !is_invalid()) {
+        var v = actual_version();
+        if (v < current_vault_version)
+            update_version(v);
+    }
 
     return Object.create({
         /// init vault git repository
