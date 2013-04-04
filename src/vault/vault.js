@@ -116,11 +116,6 @@ var mk_vault = function(path) {
         }).join(', ');
     };
 
-    var tag_as_latest = function() {
-        vcs.tag(['-d', '>latest'], true);
-        vcs.tag(['>latest']);
-    };
-
     var vault_config = function() {
         return cfg.vault(vcs);
     };
@@ -280,7 +275,6 @@ var mk_vault = function(path) {
         vcs.commit([start_time_tag, message].join('\n'));
 
         snapshots.tag(start_time_tag);
-        tag_as_latest();
         vcs.notes.add(options.message || start_time_tag);
         return res;
     };
