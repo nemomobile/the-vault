@@ -295,7 +295,7 @@ var mk_vault = function(path) {
         vcs.commit([start_time_tag, message].join('\n'));
 
         snapshots.tag(start_time_tag);
-        vcs.notes.add(options.message || start_time_tag);
+        vcs.notes.add(options.message || "");
         return res;
     };
 
