@@ -39,12 +39,13 @@ Date.method('toGitTag', function() {
 });
 
 var mk_snapshots = function(vcs) {
-    var id = function(name) { return '>' + name; }
-    , is_id = function(id) { return id.length && id[0] === '>'; }
-    , name = function(id) {
-        return is_id(id) ? id.substr(1) : undefined;
-    }
-    , that = Object.create({
+    var id, is_id, name, that;
+
+    id = function(name) { return '>' + name; };
+    is_id = function(id) { return id.length && id[0] === '>'; };
+    name = function(id) { return is_id(id) ? id.substr(1) : undefined; };
+
+    that = Object.create({
         list : function() {
             return util.map(util.filter(vcs.tags(), is_id), name);
         },
