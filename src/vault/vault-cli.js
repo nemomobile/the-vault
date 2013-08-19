@@ -38,6 +38,6 @@ var cmdline = sys.getopt({
     tag : { short_ : "t", long_ : "tag", has_param : true },
     unit : { short_ : "M", long_ : "unit", has_param : true },
     data : { short_ : "d", long_ : "data", has_param : true }
-}).parse(qtscript.script.args);
+}).parse(module.args);
 
 vault.execute(cmdline.opts);

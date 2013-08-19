@@ -22,8 +22,6 @@
  * http://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
  */
 
-require("qtcore.js");
-
 var sys = require("sys.js");
 var os = require("os.js");
 var subprocess = require("subprocess.js");

@@ -10,7 +10,7 @@ var getopt = function() {
                  required : true, has_param : true},
         action : { short_ : "a", long_ : "action",
                    required : true, has_param : true}
-    }).parse(qtscript.script.args).opts;
+    }).parse(module.args).opts;
 };
 
 var config = function(vault_dir) {

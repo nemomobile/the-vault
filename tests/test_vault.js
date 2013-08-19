@@ -73,6 +73,7 @@ fixture.addTest('config_global', function() {
     units = cfg.global.units();
     mod_count = 0;
     var unit2_fname = os.path(global_mod_dir, "unit2" + ".json");
+    assert.ok(os.path.isfile(unit1_fname), "unit 1 global config");
     units.each(function(){ ++mod_count; })
         assert.ok('unit2' in units, "Unit2 in config");
     assert.equal(mod_count, 2, "One unit/member");
@@ -149,7 +150,21 @@ fixture.addTest('simple_blobs', function() {
     assert.ok(os.path.isdir(unit1_dir), "unit1 is prepared")
     assert.ok(os.path.isfile(unit1_blob), "unit1 blob is prepared")
 
-    vault.backup(home, {}, function() {});
+    var is_started = true, is_failed = false;
+    vault.backup(home, {}, function(progress) {
+        switch(progress.status) {
+            case "fail":
+            is_failed = true;
+            break;
+            case "begin":
+            is_started = true;
+            break;
+            default:
+            break;
+        }
+    });
+    assert.ok(is_started, "backup was not started");
+    assert.ok(!is_failed, "backup is failed");
     assert.ok(os.path.isdir(unit1_dir), "unit1 is still here");
     assert.ok(os.path.isfile(unit1_blob), "unit1 blob is still here");
     var unit1_vault = vault.unit_path('unit1');

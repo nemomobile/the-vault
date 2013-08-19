@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export QTSCRIPT_LIBRARY_PATH=../src
+export CUTES_LIBRARY_PATH=../src
 EXEC=cutes
 
 for i in vault; do

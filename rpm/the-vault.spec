@@ -7,10 +7,8 @@ Group: System Environment/Tools
 URL: https://github.com/nemomobile/the-vault
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
-Requires: cutes >= 0.7.7
-Requires: cutes-js >= 0.7.7
-Requires: qtscriptbindings-core
+Requires: cutes >= 0.8.1
+Requires: cutes-js >= 0.8.1
 Requires: git >= 1.7
 BuildRequires: cmake >= 2.8
 
