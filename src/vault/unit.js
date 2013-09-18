@@ -182,7 +182,7 @@ var execute = function(options, context) {
             // item is going first
             dst = os.path(items[0].full_path);
             if (!os.path.isdir(dst)) {
-                if (!os.mkdir(dst))
+                if (!os.mkdir(dst, {parent: true}))
                     error.raise({msg: "Can't create directory", dir: dst});
             }
             os.update_tree(os.path(src_root, '.'), dst, {preserve: 'all'});

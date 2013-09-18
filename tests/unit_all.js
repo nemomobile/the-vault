@@ -15,8 +15,8 @@ var info = {
             { path : 'data/symlink_to_dir' }
         ],
         bin : [
-            { path : 'bin/.hidden_dir_self' },
             { path : 'bin/content/.' },
+            { path : 'bin/.hidden_dir_self' },
             { path : 'bin/file1' },
             { path : 'bin/in_dir/file2' },
             { path : 'bin/symlink_to_dir' }

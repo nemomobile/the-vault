@@ -15,9 +15,15 @@ var home_dirs;
 
 var fixture = assert.fixture();
 
+var mkdir;
+
 fixture.addSetup(function() {
-    var mkdir = function(p) { os.mkdir(p, { parent: true }) || error.raise({msg: "Error creating", path: p}); };
     var i;
+
+    mkdir = function(p) {
+        os.mkdir(p, { parent: true })
+            || error.raise({msg: "Error creating", path: p});
+    };
 
     mkdir(home);
     mkdir(home_out);
@@ -84,14 +90,51 @@ fixture.addTest('import', function() {
     params = util.mapObject(params, function(k, v) {
         return [["--", k].join(""), v].join("=");
     });
-    p = ps.system("./unit_all.js", params);
-    print(p.stdout().toString(), p.stderr().toString());
+    ps.check_output("./unit_all.js", params);
 
     out = ps.check_output("./check_dirs_similar.sh", [home, home_out]).toString();
     out = util.filter(out.split("\n"), function(v) {
         return /^[<>]/.test(v);
     });
     assert.deepEqual(out, []);
+});
+
+fixture.addTest("import_v0", function() {
+    var i, p, out;
+
+    // prepare src
+    var test_root = os.path(root, "import_v0");
+    mkdir(test_root);
+    var src = os.path(test_root, "src");
+    mkdir(src);
+    var dst = os.path(test_root, "dst");
+    mkdir(dst);
+    for (i = 0; i < 4; ++i)
+        os.write_file(os.path(src, "v0" + i), i);
+
+    // backup
+    var params = { "dir": src, "bin-dir": src
+        , "home-dir": dst, action: "import" };
+    params = util.mapObject(params, function(k, v) {
+        return [["--", k].join(""), v].join("=");
+    });
+    ps.check_output("./unit_all.js", params);
+    out = ps.check_output("./check_dirs_similar.sh"
+        , [os.path(test_root, "src")
+           , os.path(test_root, "dst/bin/content")]).toString();
+    out = util.filter(out.split("\n"), function(v) {
+        return /^[<>]/.test(v);
+    });
+    assert.deepEqual(out, []);
+
+    out = ps.check_output("./check_dirs_similar.sh"
+        , [os.path(test_root, "src")
+            , os.path(test_root, "dst/data/.hidden_dir_self")]).toString();
+    out = util.filter(out.split("\n"), function(v) {
+        return /^[<>]/.test(v);
+    });
+    assert.deepEqual(out, []);
+    
 });
 
 fixture.execute();
