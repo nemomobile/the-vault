@@ -170,7 +170,7 @@ fixture.addTest('simple_blobs', function() {
     var unit1_vault = vault.unit_path('unit1');
     var unit1_vault_path = unit1_vault.bin().absolute;
     assert.ok(os.path.isdir(unit1_vault_path), "unit1 is in the vault");
-    var unit1_vault_blob = os.path(unit1_vault_path, 'blob1');
+    var unit1_vault_blob = os.path(unit1_vault_path, 'unit1', 'blob1');
     assert.ok(os.path.exists(unit1_vault_blob)
              , "unit1 blob1 is in the vault");
     assert.ok(os.path.isSymLink(unit1_vault_blob)

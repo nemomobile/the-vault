@@ -3,11 +3,13 @@
 var vault = require('vault/unit');
 var os = require('os');
 
-var context = {
-    bin_dir : function(home) {
-        return os.path(home, 'unit1');
+var info = {
+    home : {
+        bin : [
+            { path : 'unit1' }
+        ]
     }
 };
 
-vault.execute(vault.getopt(), context);
+vault.execute(vault.getopt(), info);
 
