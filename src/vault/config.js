@@ -191,5 +191,7 @@ exports = Object.create({
     unit : unit_config,
     system : system_config,
     vault : vault_config,
-    global : global_config
+    global : global_config,
+    // prefix for configuration files
+    prefix : ".f8b52b7481393a3e6ade051ecfb549fa"
 })

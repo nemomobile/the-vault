@@ -218,6 +218,12 @@ var mk_vault = function(path) {
                 if (status.index === ' ' && status.tree === 'D')
                     return vcs.rm(git_path);
 
+                // service files are not blobs
+                var fname = os.path.fileName(git_path);
+                var service_prefix = cfg.prefix, len = service_prefix.length;
+                if (fname.length >= len && fname.substr(0, len) == service_prefix)
+                    return vcs.add(git_path);
+
                 return blob(git_path).add();
             });
 
