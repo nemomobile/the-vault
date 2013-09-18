@@ -3,7 +3,7 @@
 export CUTES_LIBRARY_PATH=../src
 EXEC=cutes
 
-for i in vault; do
+for i in vault unit; do
     $EXEC test_$i.js
     if [ $? -ne 0 ]; then
         exit 1;
