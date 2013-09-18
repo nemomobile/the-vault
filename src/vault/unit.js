@@ -72,7 +72,8 @@ var execute = function(options, context) {
     get_root_vault_dir = function(data_type) {
         var res = vault_dir[data_type];
         if (!res)
-            error.raise({ msg : "Unknown data type is unknown", data_type : data_type});
+            error.raise({ msg : "Unknown data type is unknown"
+                          , data_type : data_type});
         if (!os.path.isDir(res))
             error.raise({ msg : "Vault dir doesn't exist?", dir : res });
         return res;
@@ -278,6 +279,7 @@ var execute = function(options, context) {
                 os.cp(src, dst, {update: true, preserve: 'all'});
             }
         });
+        return true;
     };
 
     actions = {
@@ -286,7 +288,11 @@ var execute = function(options, context) {
     };
 
     var get_home_path = function(item) {
-        var res = Object.create(item);
+        var res;
+        if (typeof item === "string") {
+            item = { path: item };
+        }
+        res = Object.create(item);
 
         var path = item.path;
         if (typeof path != "string")
