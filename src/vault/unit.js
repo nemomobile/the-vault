@@ -152,6 +152,9 @@ var execute = function(options, context) {
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
             var options = {preserve: 'all'
+                           // TODO should be checked for source is
+                           // from single filesystem
+                           , hardlink: true
                           };
             var fn;
 
