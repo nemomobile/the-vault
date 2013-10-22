@@ -88,7 +88,7 @@ var execute = function(options, context) {
     };
 
 
-    to_vault = function(data_type, paths) {
+    to_vault = function(data_type, paths, location) {
         var dst_root = get_root_vault_dir(data_type);
         var link_info_path = get_link_info_fname(dst_root);
 
@@ -151,18 +151,23 @@ var execute = function(options, context) {
         var copy_entry = function(info) {
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
+            var options = {preserve: 'all'
+                          };
+            var fn;
 
             if (!(os.path.isDir(dst) || os.mkdir(dst, { parent: true })))
                 error.raise({ msg: "Can't create destination in vault"
                               , path: dst});
+
             if (os.path.isDir(src)) {
-                os.update_tree(src, dst, {preserve: 'all'});
+                fn = os.update_tree;
             } else if (os.path.isFile(src)) {
-                os.cp(src, dst, {update: true, preserve: 'all'});
+                fn = os.cp;
             } else {
                 error.raise({msg: "No handler for this entry type"
                              , path: src});
             }
+            fn(src, dst, options);
         };
 
         paths.each(process_symlinks);
@@ -172,9 +177,12 @@ var execute = function(options, context) {
         version(dst_root).save();
     };
 
-    from_vault = function(data_type, items) {
+    from_vault = function(data_type, items, location) {
         var src_root, links, create_dst_dirs, fallback_v0;
         var linked_items = [];
+        var overwrite_default = location.options.overwrite;
+        if (overwrite_default === undefined)
+            overwrite_default = context.options.overwrite;
 
         fallback_v0 = function() {
             var dst, src;
@@ -266,18 +274,33 @@ var execute = function(options, context) {
         items.each(function(item) {
             var src, dst;
             if (item.skip) return;
+            var overwrite, fn, options;
+
+            options = {preserve: 'all'};
+            overwrite = item.overwrite;
+            if (overwrite === undefined)
+                overwrite = overwrite_default;
 
             // TODO process correctly self dir (copy with dir itself)
             create_dst_dirs(item);
             if (os.path.isDir(item.src)) {
                 dst = os.path.dirName(os.path.canonical(item.full_path));
                 src = os.path.canonical(item.src);
-                os.update_tree(src, dst, {preserve: 'all'});
+                if (overwrite) {
+                    fn = os.cptree;
+                    options.force = true;
+                } else {
+                    fn = os.update_tree;
+                }
             } else if (os.path.isFile(item.src)) {
+                fn = os.cp;
                 dst = os.path.dirName(item.full_path);
                 src = item.src
-                os.cp(src, dst, {update: true, preserve: 'all'});
+
+                if (overwrite)
+                    options.force = true;
             }
+            fn(src, dst, options);
         });
         return true;
     };
@@ -305,10 +328,14 @@ var execute = function(options, context) {
     };
 
     var location_actions = {
-        home : function(context_types) {
-            context_types.each(function(data_type, items) {
+        home : function(location) {
+            location.options = location.options || {}
+            location.each(function(name, items) {
+                if (name == "options")
+                    return; // skip options
+                var data_type = name;
                 var paths = util.map(items, get_home_path);
-                action(data_type, paths);
+                action(data_type, paths, location);
             });
         }
     };
@@ -329,7 +356,11 @@ var execute = function(options, context) {
     if (action == undefined)
         error.raise({ msg : "Unknown action", action : options.action});
 
+    context.options = context.options || {}
     context.each(function(name, value) {
+        if (name == "options")
+            return; // skip options
+
         var next = location_actions[name];
         if (!next)
             error.raise({ msg : "Unknown context item", item : name});
