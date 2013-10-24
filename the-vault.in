@@ -1,2 +1,2 @@
 #!/bin/sh
-cutes @CMAKE_INSTALL_PREFIX@/share/cutes/vault/vault-cli.js $*
+cutes @CMAKE_INSTALL_PREFIX@/share/cutes/vault/vault-cli.js $@

@@ -416,7 +416,10 @@ var execute_global = function(options) {
         if (!options.data)
             error.raise({ action : action, msg : "Needs data" });
 
-        config.set(parse_kv_pairs(options.data));
+        var data = parse_kv_pairs(options.data)
+        if (options.unit !== undefined)
+            data.name = options.unit;
+        config.set(data);
         break;
     case 'unregister':
         if (!options.unit)

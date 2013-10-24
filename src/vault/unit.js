@@ -151,11 +151,7 @@ var execute = function(options, context) {
         var copy_entry = function(info) {
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
-            var options = {preserve: 'all'
-                           // TODO should be checked for source is
-                           // from single filesystem
-                           , hardlink: true
-                          };
+            var options = {preserve: 'all'};
             var fn;
 
             if (!(os.path.isDir(dst) || os.mkdir(dst, { parent: true })))

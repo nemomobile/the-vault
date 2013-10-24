@@ -9,7 +9,7 @@ Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 Requires: cutes >= 0.8.6
 Requires: cutes-js >= 0.8.10
-Requires: git >= 1.7
+Requires: git-minimal >= 1.7
 BuildRequires: cmake >= 2.8
 
 %description
