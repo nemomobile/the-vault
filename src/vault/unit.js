@@ -44,6 +44,7 @@ var execute = function(options, context) {
     var error = require('error');
     var json = require("json_config");
 
+    var default_preserve = "mode,ownership,timestamps";
     var action, actions;
     var src, dst;
 
@@ -151,7 +152,7 @@ var execute = function(options, context) {
         var copy_entry = function(info) {
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
-            var options = {preserve: 'all'};
+            var options = {preserve: default_preserve};
             var fn;
 
             if (!(os.path.isDir(dst) || os.mkdir(dst, { parent: true })))
@@ -193,7 +194,9 @@ var execute = function(options, context) {
                 if (!os.mkdir(dst, {parent: true}))
                     error.raise({msg: "Can't create directory", dir: dst});
             }
-            os.update_tree(os.path(src_root, '.'), dst, {preserve: 'all'});
+            os.update_tree(os.path(src_root, '.')
+                           , dst, {preserve: default_preserve
+                                   , deref: true});
         };
 
         create_dst_dirs = function(item) {
@@ -271,11 +274,11 @@ var execute = function(options, context) {
             items = items.concat(linked_items);
 
         items.each(function(item) {
-            var src, dst;
+            var src, dst_dir, dst;
             if (item.skip) return;
             var overwrite, fn, options;
 
-            options = {preserve: 'all'};
+            options = {preserve: default_preserve, deref: true};
             overwrite = item.overwrite;
             if (overwrite === undefined)
                 overwrite = overwrite_default;
@@ -283,23 +286,34 @@ var execute = function(options, context) {
             // TODO process correctly self dir (copy with dir itself)
             create_dst_dirs(item);
             if (os.path.isDir(item.src)) {
-                dst = os.path.dirName(os.path.canonical(item.full_path));
+                dst = os.path.canonical(item.full_path);
+                dst_dir = os.path.dirName(dst);
                 src = os.path.canonical(item.src);
                 if (overwrite) {
-                    fn = os.cptree;
+                    fn = function() {
+                        os.rmtree(dst);
+                        os.cptree(src, dst_dir, options);
+                    }
                     options.force = true;
                 } else {
-                    fn = os.update_tree;
+                    fn = os.update_tree.curry(src, dst_dir, options);
                 }
             } else if (os.path.isFile(item.src)) {
-                fn = os.cp;
-                dst = os.path.dirName(item.full_path);
+                dst = item.full_path;
+                dst_dir = os.path.dirName(dst);
                 src = item.src
 
-                if (overwrite)
+                if (overwrite) {
+                    fn = function() {
+                        os.unlink(dst);
+                        os.cp(src, dst_dir, options);
+                    }
                     options.force = true;
+                } else {
+                    fn = os.cp.curry(src, dst, options);
+                }
             }
-            fn(src, dst, options);
+            fn();
         });
         return true;
     };
