@@ -162,6 +162,14 @@ var mk_vault = function(path) {
             os.path.setLastModified(blob_fname, origTime);
             var target = os.path.relative(blob_fname, os.path.dirname(link_fname));
             os.symlink(target, link_fname);
+            if (!os.path.isSymLink(link_fname)) {
+                error.raise({
+                    msg: "Blob should be symlinked",
+                    link: link_fname,
+                    target: target
+                });
+            }
+            vcs.add(git_path);
         };
 
         return Object.create({
@@ -234,7 +242,9 @@ var mk_vault = function(path) {
                 return;
             }
 
-            vcs.add(root_dir.relative, ['-A']);
+            // add all only in data dir to avoid blobs to get into git
+            // objects storage
+            vcs.add(data_dir.relative, ['-A']);
             status = vcs.status(root_dir.relative);
             if (stat.is_tree_dirty(status))
                 error.raise({msg : "Dirty tree",
