@@ -265,6 +265,13 @@ var mk_vault = function(path) {
            restore : restore_unit,
            reset : reset_unit });
     };
+
+    var reset = function(treeish) {
+        vcs.clean(['-fdx']);
+        if (treeish)
+            vcs.reset(['--hard', treeish]);
+        else
+            vcs.reset(['--hard']);
     };
 
     var backup = function(home, options, on_progress) {
@@ -292,7 +299,8 @@ var mk_vault = function(path) {
             }
         };
 
-        vcs.checkout('master');
+        reset();
+        vcs.checkout('master', ['-f']);
 
         if (options && options.units) {
             options.units.each(backup_unit);
@@ -345,7 +353,10 @@ var mk_vault = function(path) {
     };
 
     var checkout = function(treeish) {
-        vcs.checkout(treeish);
+        if (typeof(treeish) !== 'string')
+            error.raise({msg: 'expected string as treeish', actual: treeish});
+        vcs.checkout(treeish, ['-f']);
+        reset(treeish);
     };
 
     var register = function(config) {
