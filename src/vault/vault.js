@@ -185,8 +185,8 @@ var mk_vault = function(path) {
         var blobs_dir = root_dir.path("blobs");
         var mkdir = os.mkdir;
 
-        var reset = function(treeish) {
-            vcs.clean(['-fd', '--', name]);
+        var reset_unit = function(treeish) {
+            vcs.clean(['-fdx', '--', name]);
             vcs.reset(['--hard', treeish]);
         };
 
@@ -203,11 +203,11 @@ var mk_vault = function(path) {
             debug.info(subprocess.check_output(config.script, args));
         };
 
-        var restore = function() {
+        var restore_unit = function() {
             exec_script('import');
         };
 
-        var backup = function() {
+        var backup_unit = function() {
             var status, i;
 
             // cleanup directories for data and blobs in
@@ -261,9 +261,10 @@ var mk_vault = function(path) {
 
         };
         return Object.create
-        ({ backup : backup,
-           restore : restore,
-           reset : reset });
+        ({ backup : backup_unit,
+           restore : restore_unit,
+           reset : reset_unit });
+    };
     };
 
     var backup = function(home, options, on_progress) {
