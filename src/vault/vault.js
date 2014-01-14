@@ -275,6 +275,16 @@ var mk_vault = function(path) {
     };
 
     var backup = function(home, options, on_progress) {
+        if (!os.path.isDir(home))
+            error.raise({msg: "Home is not a dir", path: home });
+
+        if (typeof(on_progress) !== 'function')
+            on_progress = function(status) {
+                debug.debug(util.dump("Progress", status));
+            };
+
+        options = options || {};
+
         var res = { succeeded :[], failed : [] };
         var config = vault_config();
         var start_time_tag = sys.date().toGitTag();
@@ -302,7 +312,7 @@ var mk_vault = function(path) {
         reset();
         vcs.checkout('master', ['-f']);
 
-        if (options && options.units) {
+        if (options.units) {
             options.units.each(backup_unit);
         } else {
             config.units().each(function(name, value) {
@@ -310,7 +320,7 @@ var mk_vault = function(path) {
             });
         }
 
-        message = ((options && options.message)
+        message = (options.message
                    ? [start_time_tag, options.message].join('\n')
                    : start_time_tag);
         os.write_file(message_file, message);
@@ -323,6 +333,16 @@ var mk_vault = function(path) {
     };
 
     var restore = function(home, options, on_progress) {
+        if (!os.path.isDir(home))
+            error.raise({msg: "Home is not a dir", path: home });
+
+        if (typeof(on_progress) !== 'function')
+            on_progress = function(status) {
+                debug.debug(util.dump("Progress", status));
+            };
+
+        options = options || {};
+
         var config = vault_config();
         var res = { succeeded :[], failed : [] };
         var name;
@@ -343,7 +363,7 @@ var mk_vault = function(path) {
             }
         };
 
-        if (options && options.units) {
+        if (options.units) {
             options.units.each(restore_unit);
         } else {
             config.units().each(function(name, value) {
