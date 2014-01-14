@@ -120,11 +120,31 @@ var mk_vault = function(path) {
         return os.path.isdir(path);
     };
 
+    var reset = function(treeish) {
+        vcs.clean(['-fdx']);
+        if (treeish)
+            vcs.reset(['--hard', treeish]);
+        else
+            vcs.reset(['--hard']);
+    };
+
+
+    var try_reset_master = function() {
+        reset();
+        vcs.checkout('master', ['-f']);
+    };
+
     var is_invalid = function() {
         if (!os.path.exists(storage))
             return { msg : "Can't find .git", path: path};
-        if (!os.path.isfile(anchor_file))
-            return { msg : "Can't find .vault anchor", path: path};
+        if (!os.path.exists(blob_storage))
+            return { msg : "Can't find blobs storage", path: path};
+
+        if (!os.path.isfile(anchor_file)) {
+            try_reset_master();
+            if (!os.path.isfile(anchor_file))
+                return { msg : "Can't find .vault anchor", path: path};
+        }
         return false;
     };
 
@@ -264,14 +284,6 @@ var mk_vault = function(path) {
         ({ backup : backup_unit,
            restore : restore_unit,
            reset : reset_unit });
-    };
-
-    var reset = function(treeish) {
-        vcs.clean(['-fdx']);
-        if (treeish)
-            vcs.reset(['--hard', treeish]);
-        else
-            vcs.reset(['--hard']);
     };
 
     var backup = function(home, options, on_progress) {
