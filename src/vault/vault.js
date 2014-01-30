@@ -120,11 +120,31 @@ var mk_vault = function(path) {
         return os.path.isdir(path);
     };
 
+    var reset = function(treeish) {
+        vcs.clean(['-fdx']);
+        if (treeish)
+            vcs.reset(['--hard', treeish]);
+        else
+            vcs.reset(['--hard']);
+    };
+
+
+    var try_reset_master = function() {
+        reset();
+        vcs.checkout('master', ['-f']);
+    };
+
     var is_invalid = function() {
         if (!os.path.exists(storage))
             return { msg : "Can't find .git", path: path};
-        if (!os.path.isfile(anchor_file))
-            return { msg : "Can't find .vault anchor", path: path};
+        if (!os.path.exists(blob_storage))
+            return { msg : "Can't find blobs storage", path: path};
+
+        if (!os.path.isfile(anchor_file)) {
+            try_reset_master();
+            if (!os.path.isfile(anchor_file))
+                return { msg : "Can't find .vault anchor", path: path};
+        }
         return false;
     };
 
@@ -266,15 +286,17 @@ var mk_vault = function(path) {
            reset : reset_unit });
     };
 
-    var reset = function(treeish) {
-        vcs.clean(['-fdx']);
-        if (treeish)
-            vcs.reset(['--hard', treeish]);
-        else
-            vcs.reset(['--hard']);
-    };
-
     var backup = function(home, options, on_progress) {
+        if (!os.path.isDir(home))
+            error.raise({msg: "Home is not a dir", path: home });
+
+        if (typeof(on_progress) !== 'function')
+            on_progress = function(status) {
+                debug.debug(util.dump("Progress", status));
+            };
+
+        options = options || {};
+
         var res = { succeeded :[], failed : [] };
         var config = vault_config();
         var start_time_tag = sys.date().toGitTag();
@@ -302,7 +324,7 @@ var mk_vault = function(path) {
         reset();
         vcs.checkout('master', ['-f']);
 
-        if (options && options.units) {
+        if (options.units) {
             options.units.each(backup_unit);
         } else {
             config.units().each(function(name, value) {
@@ -310,7 +332,7 @@ var mk_vault = function(path) {
             });
         }
 
-        message = ((options && options.message)
+        message = (options.message
                    ? [start_time_tag, options.message].join('\n')
                    : start_time_tag);
         os.write_file(message_file, message);
@@ -323,6 +345,16 @@ var mk_vault = function(path) {
     };
 
     var restore = function(home, options, on_progress) {
+        if (!os.path.isDir(home))
+            error.raise({msg: "Home is not a dir", path: home });
+
+        if (typeof(on_progress) !== 'function')
+            on_progress = function(status) {
+                debug.debug(util.dump("Progress", status));
+            };
+
+        options = options || {};
+
         var config = vault_config();
         var res = { succeeded :[], failed : [] };
         var name;
@@ -343,7 +375,7 @@ var mk_vault = function(path) {
             }
         };
 
-        if (options && options.units) {
+        if (options.units) {
             options.units.each(restore_unit);
         } else {
             config.units().each(function(name, value) {
