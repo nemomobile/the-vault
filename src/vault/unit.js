@@ -137,16 +137,19 @@ var execute = function(options, context) {
         };
 
         var is_src_exists = function(info) {
-            if (info.skip)
-                return false;
-
-            if (!os.path.exists(info.full_path)) {
+            var res = true;
+            if (info.skip) {
+                res = false;
+            } else if (!os.path.exists(info.full_path)) {
                 if (info.required)
                     error.raise({ msg: "Required path does not exist"
                                   , path: info.full_path });
-                return false;
+                res = false;
             }
-            return true;
+            if (!res)
+                debug.info(util.dump("Does not exist/skip", info));
+
+            return res;
         };
 
         var copy_entry = function(info) {
@@ -204,11 +207,12 @@ var execute = function(options, context) {
             if (!os.path.isDir(item.src))
                 path = os.path.dirName(path);
 
-            var res = os.path.isDir(path) || os.mkdir(path, {parent: true});
-            if (!res && item.required)
-                error.raise({msg: "Can't recreate tree to required item", path: item.path
-                             , dst_dir: path});
-        };
+            if (!os.path.isDir(path)) {
+                if (!os.mkdir(path, {parent: true}) && item.required)
+                    error.raise({msg: "Can't recreate tree to required item"
+                                 , path: item.path, dst_dir: path});
+            }
+        }
 
         var process_absent_and_links = function(item) {
             var src = os.path(src_root, item.path);
@@ -325,13 +329,13 @@ var execute = function(options, context) {
 
     var get_home_path = function(item) {
         var res;
-        if (typeof item === "string") {
+        if (typeof item === "string")
             item = { path: item };
-        }
+
         res = Object.create(item);
 
         var path = item.path;
-        if (typeof path != "string")
+        if (typeof path !== "string")
             error.raise({ msg : "Invalid data(path)"
                           , item : util.dump("ITEM", item, {proto: true})});
 
@@ -347,7 +351,9 @@ var execute = function(options, context) {
                 if (name == "options")
                     return; // skip options
                 var data_type = name;
-                var paths = util.map(items, get_home_path);
+                var paths = (typeof items === "string")
+                    ? [get_home_path(items)]
+                    : util.map(items, get_home_path);
                 action(data_type, paths, location);
             });
         }
