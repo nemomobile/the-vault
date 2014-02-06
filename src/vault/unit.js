@@ -90,6 +90,8 @@ var execute = function(options, context) {
 
 
     to_vault = function(data_type, paths, location) {
+        debug.debug("To vault", data_type, util.dump("Paths", paths)
+                    , util.dump("Location", location));
         var dst_root = get_root_vault_dir(data_type);
         var link_info_path = get_link_info_fname(dst_root);
 
@@ -112,6 +114,7 @@ var execute = function(options, context) {
             if (!os.path.isSymLink(v.full_path))
                 return;
 
+            debug.debug(util.dump("Process symlink", v));
             if (!os.path.isDescendent(v.full_path, v.root_path)) {
                 if (v.required)
                     error.raise({ msg: "Required path does not belong to its root dir"
@@ -153,6 +156,7 @@ var execute = function(options, context) {
         };
 
         var copy_entry = function(info) {
+            debug.debug(util.dump("COPY", info));
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
             var options = {preserve: default_preserve};
@@ -181,6 +185,8 @@ var execute = function(options, context) {
     };
 
     from_vault = function(data_type, items, location) {
+        debug.debug("From vault", data_type, util.dump("Paths", items)
+                    , util.dump("Location", location));
         var src_root, links, create_dst_dirs, fallback_v0;
         var linked_items = [];
         var overwrite_default = location.options.overwrite;
