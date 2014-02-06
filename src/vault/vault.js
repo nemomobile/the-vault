@@ -419,10 +419,12 @@ var mk_vault = function(path) {
     };
 
     var unit_path = function(name) {
-        return Object.create({
-            bin : vcs.path.curry(name, 'blobs'),
-            data : vcs.path.curry(name, 'data')
-        });
+        var res = function() {
+            return vcs.path(name);
+        };
+        res.bin = vcs.path.curry(name, 'blobs');
+        res.data = vcs.path.curry(name, 'data');
+        return res;
     };
 
     if (exists() && !is_invalid()) {
