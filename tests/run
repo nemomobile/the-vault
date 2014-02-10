@@ -1,7 +1,20 @@
 #!/bin/bash
 
+SRCROOT=$(mktemp -d)
+echo "Sources in $SRCROOT"
+mkdir $SRCROOT/tests \
+    && cp -r ./ $SRCROOT/tests \
+    && cp -r ../src $SRCROOT
+
+cd $SRCROOT/tests || exit 1
+
 export CUTES_LIBRARY_PATH=../src
 EXEC=cutes
+
+if [ "`pwd`" != "$SRCROOT/tests" ]; then
+    echo "PWD??? `pwd`"
+    exit 1
+fi
 
 for i in vault unit; do
     $EXEC test_$i.js
