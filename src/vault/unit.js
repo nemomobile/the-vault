@@ -90,6 +90,8 @@ var execute = function(options, context) {
 
 
     to_vault = function(data_type, paths, location) {
+        debug.debug("To vault", data_type, util.dump("Paths", paths)
+                    , util.dump("Location", location));
         var dst_root = get_root_vault_dir(data_type);
         var link_info_path = get_link_info_fname(dst_root);
 
@@ -112,6 +114,7 @@ var execute = function(options, context) {
             if (!os.path.isSymLink(v.full_path))
                 return;
 
+            debug.debug(util.dump("Process symlink", v));
             if (!os.path.isDescendent(v.full_path, v.root_path)) {
                 if (v.required)
                     error.raise({ msg: "Required path does not belong to its root dir"
@@ -137,19 +140,23 @@ var execute = function(options, context) {
         };
 
         var is_src_exists = function(info) {
-            if (info.skip)
-                return false;
-
-            if (!os.path.exists(info.full_path)) {
+            var res = true;
+            if (info.skip) {
+                res = false;
+            } else if (!os.path.exists(info.full_path)) {
                 if (info.required)
                     error.raise({ msg: "Required path does not exist"
                                   , path: info.full_path });
-                return false;
+                res = false;
             }
-            return true;
+            if (!res)
+                debug.info(util.dump("Does not exist/skip", info));
+
+            return res;
         };
 
         var copy_entry = function(info) {
+            debug.debug(util.dump("COPY", info));
             var dst = os.path.dirName(os.path(dst_root, info.path));
             var src = info.full_path;
             var options = {preserve: default_preserve};
@@ -178,6 +185,8 @@ var execute = function(options, context) {
     };
 
     from_vault = function(data_type, items, location) {
+        debug.debug("From vault", data_type, util.dump("Paths", items)
+                    , util.dump("Location", location));
         var src_root, links, create_dst_dirs, fallback_v0;
         var linked_items = [];
         var overwrite_default = location.options.overwrite;
@@ -204,11 +213,12 @@ var execute = function(options, context) {
             if (!os.path.isDir(item.src))
                 path = os.path.dirName(path);
 
-            var res = os.path.isDir(path) || os.mkdir(path, {parent: true});
-            if (!res && item.required)
-                error.raise({msg: "Can't recreate tree to required item", path: item.path
-                             , dst_dir: path});
-        };
+            if (!os.path.isDir(path)) {
+                if (!os.mkdir(path, {parent: true}) && item.required)
+                    error.raise({msg: "Can't recreate tree to required item"
+                                 , path: item.path, dst_dir: path});
+            }
+        }
 
         var process_absent_and_links = function(item) {
             var src = os.path(src_root, item.path);
@@ -325,13 +335,13 @@ var execute = function(options, context) {
 
     var get_home_path = function(item) {
         var res;
-        if (typeof item === "string") {
+        if (typeof item === "string")
             item = { path: item };
-        }
+
         res = Object.create(item);
 
         var path = item.path;
-        if (typeof path != "string")
+        if (typeof path !== "string")
             error.raise({ msg : "Invalid data(path)"
                           , item : util.dump("ITEM", item, {proto: true})});
 
@@ -347,7 +357,9 @@ var execute = function(options, context) {
                 if (name == "options")
                     return; // skip options
                 var data_type = name;
-                var paths = util.map(items, get_home_path);
+                var paths = (typeof items === "string")
+                    ? [get_home_path(items)]
+                    : util.map(items, get_home_path);
                 action(data_type, paths, location);
             });
         }

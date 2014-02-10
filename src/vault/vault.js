@@ -67,6 +67,7 @@ var mk_vault = function(path) {
     var anchor_file = os.path(path, '.vault');
     var actual_version, update_version;
 
+    debug.debug("Vault dir ", path);
     var init = function(config) {
         config["status.showUntrackedFiles"] = "all";
 
@@ -212,7 +213,7 @@ var mk_vault = function(path) {
 
         /// execute backup script registered for the unit
         var exec_script = function(action) {
-            debug.debug('script', config.script, 'action', action);
+            debug.info('SCRIPT>>>', config.script, 'action', action);
             if (!os.path.isexec(config.script))
                 error.raise({msg : "Should be executable"
                             , script : config.script});
@@ -220,7 +221,23 @@ var mk_vault = function(path) {
                         '--dir', data_dir.absolute,
                         '--bin-dir', blobs_dir.absolute,
                         '--home-dir', home ];
-            debug.info(subprocess.check_output(config.script, args));
+            var ps = subprocess.system(config.script, args);
+            var trace_res = debug.info;
+            if (ps.rc())
+                trace_res = debug.error;
+
+            trace_res("RC", ps.rc());
+            trace_res("STDOUT", ps.stdout().toString());
+            trace_res("<<STDOUT");
+            trace_res("STDERR", ps.stderr().toString());
+            trace_res("<<STDERR");
+            trace_res('<<<SCRIPT', config.script, 'action', action, "is done");
+            if (ps.rc()) {
+                var msg = "Backup script " + config.script
+                    + " exited with rc=" + ps.rc();
+                error.raise({msg: msg, stdout: ps.stdout().toString()
+                             , stderr: ps.stderr().toString()});
+            }
         };
 
         var restore_unit = function() {
@@ -402,10 +419,12 @@ var mk_vault = function(path) {
     };
 
     var unit_path = function(name) {
-        return Object.create({
-            bin : vcs.path.curry(name, 'blobs'),
-            data : vcs.path.curry(name, 'data')
-        });
+        var res = function() {
+            return vcs.path(name);
+        };
+        res.bin = vcs.path.curry(name, 'blobs');
+        res.data = vcs.path.curry(name, 'data');
+        return res;
     };
 
     if (exists() && !is_invalid()) {
