@@ -365,14 +365,6 @@ var execute = function(options, context) {
         }
     };
 
-    if (!os.path.isdir(vault_data_dir))
-        error.raise({msg : "Vault data dir doesn't exist"
-                     , dir : vault_data_dir});
-
-    if (!os.path.isdir(vault_bin_dir))
-        error.raise({msg : "Vault bin dir doesn't exist"
-                     , dir : vault_bin_dir});
-
     if (!os.path.isdir(home))
         error.raise({msg : "Home dir doesn't exist"
                      , dir : home});
