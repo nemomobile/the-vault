@@ -159,6 +159,18 @@ var mk_vault = function(path) {
         return cfg.vault(vcs);
     };
 
+    var unit_path = function(name) {
+        var res = function() {
+            return vcs.path(name);
+        };
+        res.bin = vcs.path.curry(name, 'blobs');
+        res.data = vcs.path.curry(name, 'data');
+        res.exists = function() {
+            return os.path.isDir(res());
+        };
+        return res;
+    };
+
     var blob = function(git_path) {
         var sha, prefix, id, blob_dir, blob_fname, link_fname;
 
@@ -183,7 +195,7 @@ var mk_vault = function(path) {
             os.path.setLastModified(blob_fname, origTime);
             var target = os.path.relative(blob_fname, os.path.dirname(link_fname));
             os.symlink(target, link_fname);
-            if (!os.path.isSymLink(link_fname)) {
+            if (!(os.path.isSymLink(link_fname) && os.path.isFile(blob_fname))) {
                 error.raise({
                     msg: "Blob should be symlinked",
                     link: link_fname,
@@ -241,6 +253,8 @@ var mk_vault = function(path) {
         };
 
         var restore_unit = function() {
+            if (!os.path.isDir(root_dir.absolute))
+                error.raise({reason: "absent", name: name});
             exec_script('import');
         };
 
@@ -330,9 +344,8 @@ var mk_vault = function(path) {
                 res.succeeded.push(name);
             } catch (err) {
                 err.unit = name;
-                debug.error("Failed to backup " + name + ", reason: "
-                            + err.toString());
-                on_progress({ unit: name, status: "fail" });
+                debug.error("Can't backup " + name + util.dump("Reason:", err));
+                on_progress({ unit: name, status: err.reason || "fail" });
                 res.failed.push(name);
                 unit.reset(head_before);
             }
@@ -385,9 +398,8 @@ var mk_vault = function(path) {
                 res.succeeded.push(name);
             } catch (err) {
                 err.unit = name;
-                debug.error("Failed to restore " + name
-                            + ", reason: " + err.toString());
-                on_progress({ unit: name, status: "fail" });
+                debug.error("Can't restore " + name + util.dump("Reason:", err));
+                on_progress({ unit: name, status: err.reason || "fail" });
                 res.failed.push(name);
             }
         };
@@ -416,15 +428,6 @@ var mk_vault = function(path) {
     var unregister = function(unit_name) {
         checkout('master');
         return vault_config().rm(unit_name);
-    };
-
-    var unit_path = function(name) {
-        var res = function() {
-            return vcs.path(name);
-        };
-        res.bin = vcs.path.curry(name, 'blobs');
-        res.data = vcs.path.curry(name, 'data');
-        return res;
     };
 
     if (exists() && !is_invalid()) {
