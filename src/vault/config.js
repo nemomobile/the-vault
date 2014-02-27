@@ -181,16 +181,27 @@ settings = function() {
         system : function() { return system_config(that); },
         units : function() { return system_config(that).units(); }
     });
-    that.units_dir = '/var/lib/the-vault';
+    var env = os.environ();
+    that.units_dir = env['VAULT_GLOBAL_CONFIG_DIR'] || '/var/lib/the-vault';
     return that;
 };
 
 global_config = settings();
 
 exports = Object.create({
+    // unit(data=undefined) creates unit configuration object
+    // providing low-level operations on units configuration
+    // (read/write from/to file, update from another source (other
+    // unit configuration or object in format {name:, script}. If
+    // "data" parameter is passed unit configuration is updated from
+    // it
     unit : unit_config,
+    // system(settings) takes settings {units_dir:, ...} as parameter
+    // and provides access to unit configuration in units_dir
     system : system_config,
     vault : vault_config,
+    // global configuration contains system_config(units_dir) and
+    // provides access to units
     global : global_config,
     // prefix for configuration files
     prefix : ".f8b52b7481393a3e6ade051ecfb549fa"
