@@ -8,7 +8,7 @@ URL: https://github.com/nemomobile/the-vault
 Source0: %{name}-%{version}.tar.bz2
 BuildArch: noarch
 Requires: cutes >= 0.8.7
-Requires: cutes-js >= 0.8.11
+Requires: cutes-js >= 0.8.16
 Requires: git-minimal >= 1.7
 BuildRequires: cmake >= 2.8
 
