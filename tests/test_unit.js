@@ -80,6 +80,8 @@ fixture.addTest('export', function() {
     var expected = ["< ./bin/symlink_to_dir", "< ./data/symlink_to_dir"
         , "> ./" + vault_config.prefix + ".links"
         , "> ./" + vault_config.prefix + ".unit.version"];
+    out.sort();
+    expected.sort();
     assert.deepEqual(out, expected);
 });
 
