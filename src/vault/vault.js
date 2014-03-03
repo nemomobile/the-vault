@@ -60,7 +60,8 @@ var mk_snapshots = function(vcs) {
 
 var filenames = {
     message: ".message",
-    version: {tree: ".vault", repository: ".git/vault.version"}
+    version: {tree: ".vault", repository: ".git/vault.version"},
+    state: ".vault.state"
 };
 
 var mk_vault = function(path) {
@@ -72,6 +73,8 @@ var mk_vault = function(path) {
     var files;
     var snapshots = mk_snapshots(vcs);
     var get_version, init_version, update_tree_version, update_repo_version;
+    var set_state, get_state;
+
     files = _fn.visit(function(node, name, data) {
         var res;
         if (name === null) {
@@ -96,6 +99,12 @@ var mk_vault = function(path) {
     };
 
     update_repo_version = function(current) {
+        debug.info("Updating repository version from " + current
+                   + " to " + version.repository);
+        if (current < 1) {
+            // state tracking file is appeared in version 1
+            set_state("new");
+        }
         os.write_file(files.version.repository, String(version.repository));
     };
 
@@ -113,6 +122,17 @@ var mk_vault = function(path) {
         return res;
     };
 
+    set_state = function(name) {
+        if (os.write_file(files.state, name) !== name.length)
+            error.raise({message: "State is not written", fname: files.state});
+    };
+
+    get_state = function() {
+        var fname = files.state;
+        return os.path.isFile()
+            ? os.read_file(files.state).toString()
+            : "unknown";
+    };
 
 
     debug.debug("Vault dir ", path);
@@ -151,6 +171,7 @@ var mk_vault = function(path) {
             var exclude = vcs.get_local().exclude;
             exclude.add(".vault.*");
             exclude.commit();
+            set_state("new");
         };
 
         if (!os.mkdir(path))
@@ -493,6 +514,9 @@ var mk_vault = function(path) {
             update_repo_version(v);
     }
 
+    if (get_state() !== "new")
+        set_state("new");
+
     return Object.create({
         /// init vault git repository
         init : init,
@@ -511,7 +535,8 @@ var mk_vault = function(path) {
         register : register,
         unregister : unregister,
         unit_path : unit_path,
-        info: { files : Object.create(filenames) }
+        info: { files : Object.create(filenames) },
+        state : { get : get_state, set : set_state }
     });
 };
 
