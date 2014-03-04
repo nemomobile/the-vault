@@ -31,7 +31,8 @@ var debug = require("debug.js");
 var git = require("git.js");
 var cfg = require('vault/config');
 var stat = require('vault/status');
-var current_vault_version = 2;
+var version = {tree: 2, repository: 1};
+var _fn = require('functional');
 
 Date.method('toGitTag', function() {
     return this.toISOString().replace(/:/g, '-');
@@ -57,27 +58,87 @@ var mk_snapshots = function(vcs) {
     return that;
 };
 
+var filenames = {
+    message: ".message",
+    version: {tree: ".vault", repository: ".git/vault.version"},
+    state: ".vault.state"
+};
+
 var mk_vault = function(path) {
 
     var vcs = git(path);
     var storage = os.path(path, ".git");
     var blob_storage = os.path(storage, 'blobs');
-    var message_file = os.path(path, ".message");
+
+    var files;
     var snapshots = mk_snapshots(vcs);
-    var anchor_file = os.path(path, '.vault');
-    var actual_version, update_version;
+    var get_version, init_version, update_tree_version, update_repo_version;
+    var set_state, get_state;
+
+    files = _fn.visit(function(node, name, data) {
+        var res;
+        if (name === null) {
+            res = {};
+        } else if (typeof data === 'object') {
+            res = {};
+            node[name] = res;
+        } else {
+            node[name] = os.path(path, data);
+        }
+        return res;
+    }, filenames);
+
+    update_tree_version = function(current) {
+        // since v2 there is no 'latest' tag
+        if (current < 2)
+            snapshots.rm('latest');
+
+        os.write_file(files.version.tree, String(version.tree));
+        vcs.add(files.version.tree);
+        vcs.commit('vault format version');
+    };
+
+    update_repo_version = function(current) {
+        debug.info("Updating repository version from " + current
+                   + " to " + version.repository);
+        if (current < 1) {
+            // state tracking file is appeared in version 1
+            set_state("new");
+        }
+        os.write_file(files.version.repository, String(version.repository));
+    };
+
+    init_version = function(name) {
+        os.write_file(files.version[name], String(version[name]));
+    };
+
+    get_version = function(name) {
+        var fname = files.version[name];
+        var res = 0;
+        if (os.path.isFile(fname)) {
+            var data = os.read_file(fname).toString();
+            res = (data.isDecimal() ? parseInt(data, 10) : 0);
+        }
+        return res;
+    };
+
+    set_state = function(name) {
+        if (os.write_file(files.state, name) !== name.length)
+            error.raise({message: "State is not written", fname: files.state});
+    };
+
+    get_state = function() {
+        var fname = files.state;
+        return os.path.isFile()
+            ? os.read_file(files.state).toString()
+            : "unknown";
+    };
+
 
     debug.debug("Vault dir ", path);
+
     var init = function(config) {
-        config["status.showUntrackedFiles"] = "all";
-
-        if (!os.mkdir(path))
-            error.raise({
-                msg : "Can't init vault",
-                path : path,
-                reason : "directory already exists" });
-
-        try {
+        var create_repo = function() {
             if (vcs.init())
                 error.raise({
                     msg : "Can't init git",
@@ -89,32 +150,45 @@ var mk_vault = function(path) {
                     msg : "Can't find .git",
                     path : path,
                     stderr : vcs.stderr()});
+        };
 
+        var setup_git_config = function(config) {
+            config["status.showUntrackedFiles"] = "all";
             vcs.config.set(config);
-            os.write_file(anchor_file, String(current_vault_version));
-            vcs.add(anchor_file);
+        };
+
+        var init_versions = function() {
+            init_version("tree");
+            vcs.add(files.version.tree);
             vcs.commit('anchor');
             vcs.tag(['anchor']);
+
             os.path.isdir(blob_storage) || os.mkdir(blob_storage);
+            init_version("repository");
+        };
+
+        var exclude_service_files = function() {
+            var exclude = vcs.get_local().exclude;
+            exclude.add(".vault.*");
+            exclude.commit();
+            set_state("new");
+        };
+
+        if (!os.mkdir(path))
+            error.raise({
+                msg : "Can't init vault",
+                path : path,
+                reason : "directory already exists" });
+
+        try {
+            create_repo();
+            setup_git_config(config);
+            exclude_service_files();
+            init_versions();
         } catch (err) {
             os.rmtree(path);
             throw err;
         }
-    };
-
-    update_version = function(from_version) {
-        // since v2 there is no 'latest' tag
-        if (from_version < 2)
-            snapshots.rm('latest');
-
-        os.write_file(anchor_file, String(current_vault_version));
-        vcs.add(anchor_file);
-        vcs.commit('vault format version');
-    };
-
-    actual_version = function() {
-        var data = os.read_file(anchor_file).toString();
-        return (data.isDecimal() ? parseInt(data, 10) : 0);
     };
 
     var exists = function() {
@@ -122,7 +196,7 @@ var mk_vault = function(path) {
     };
 
     var reset = function(treeish) {
-        vcs.clean(['-fdx']);
+        vcs.clean(['-fd']);
         if (treeish)
             vcs.reset(['--hard', treeish]);
         else
@@ -141,9 +215,9 @@ var mk_vault = function(path) {
         if (!os.path.exists(blob_storage))
             return { msg : "Can't find blobs storage", path: path};
 
-        if (!os.path.isfile(anchor_file)) {
+        if (!os.path.isfile(files.version.tree)) {
             try_reset_master();
-            if (!os.path.isfile(anchor_file))
+            if (!os.path.isfile(files.version.tree))
                 return { msg : "Can't find .vault anchor", path: path};
         }
         return false;
@@ -318,6 +392,9 @@ var mk_vault = function(path) {
     };
 
     var backup = function(home, options, on_progress) {
+        if (options)
+            debug.debug(util.dump("Backup", options));
+
         if (!os.path.isDir(home))
             error.raise({msg: "Home is not a dir", path: home });
 
@@ -365,7 +442,7 @@ var mk_vault = function(path) {
         message = (options.message
                    ? [start_time_tag, options.message].join('\n')
                    : start_time_tag);
-        os.write_file(message_file, message);
+        os.write_file(files.message, message);
         vcs.add(".message");
         vcs.commit([start_time_tag, message].join('\n'));
 
@@ -375,6 +452,8 @@ var mk_vault = function(path) {
     };
 
     var restore = function(home, options, on_progress) {
+        if (options)
+            debug.debug(util.dump("Restore", options));
         if (!os.path.isDir(home))
             error.raise({msg: "Home is not a dir", path: home });
 
@@ -431,10 +510,17 @@ var mk_vault = function(path) {
     };
 
     if (exists() && !is_invalid()) {
-        var v = actual_version();
-        if (v < current_vault_version)
-            update_version(v);
+        var v = get_version("tree");
+        if (v < version.tree)
+            update_tree_version(v);
+
+        var v = get_version("repository");
+        if (v < version.repository)
+            update_repo_version(v);
     }
+
+    if (get_state() !== "new")
+        set_state("new");
 
     return Object.create({
         /// init vault git repository
@@ -453,7 +539,9 @@ var mk_vault = function(path) {
         checkout : checkout,
         register : register,
         unregister : unregister,
-        unit_path : unit_path
+        unit_path : unit_path,
+        info: { files : Object.create(filenames) },
+        state : { get : get_state, set : set_state }
     });
 };
 
