@@ -392,6 +392,9 @@ var mk_vault = function(path) {
     };
 
     var backup = function(home, options, on_progress) {
+        if (options)
+            debug.debug(util.dump("Backup", options));
+
         if (!os.path.isDir(home))
             error.raise({msg: "Home is not a dir", path: home });
 
@@ -449,6 +452,8 @@ var mk_vault = function(path) {
     };
 
     var restore = function(home, options, on_progress) {
+        if (options)
+            debug.debug(util.dump("Restore", options));
         if (!os.path.isDir(home))
             error.raise({msg: "Home is not a dir", path: home });
 
