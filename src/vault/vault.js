@@ -31,7 +31,7 @@ var debug = require("debug.js");
 var git = require("git.js");
 var cfg = require('vault/config');
 var stat = require('vault/status');
-var version = {tree: 2, repository: 1};
+var version = {tree: 2, repository: 2};
 var _fn = require('functional');
 
 Date.method('toGitTag', function() {
@@ -64,6 +64,10 @@ var filenames = {
     state: ".vault.state"
 };
 
+var gitignore = [
+    ".vault.*"
+]
+
 var mk_vault = function(path) {
 
     var vcs = git(path);
@@ -90,9 +94,8 @@ var mk_vault = function(path) {
 
     var exclude_service_files = function() {
         var exclude = vcs.get_local().exclude;
-        exclude.add(".vault.*");
+        _fn.each(exclude.add, gitignore);
         exclude.commit();
-        set_state("new");
     };
 
     update_tree_version = function(current) {
@@ -186,6 +189,7 @@ var mk_vault = function(path) {
             setup_git_config(config);
             exclude_service_files();
             init_versions();
+            set_state("new");
         } catch (err) {
             os.rmtree(path);
             throw err;
@@ -519,6 +523,7 @@ var mk_vault = function(path) {
         if (v < version.repository)
             update_repo_version(v);
 
+        exclude_service_files();
         if (get_state() !== "new")
             set_state("new");
     }
