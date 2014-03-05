@@ -517,10 +517,10 @@ var mk_vault = function(path) {
         var v = get_version("repository");
         if (v < version.repository)
             update_repo_version(v);
-    }
 
-    if (get_state() !== "new")
-        set_state("new");
+        if (get_state() !== "new")
+            set_state("new");
+    }
 
     return Object.create({
         /// init vault git repository
