@@ -88,6 +88,13 @@ var mk_vault = function(path) {
         return res;
     }, filenames);
 
+    var exclude_service_files = function() {
+        var exclude = vcs.get_local().exclude;
+        exclude.add(".vault.*");
+        exclude.commit();
+        set_state("new");
+    };
+
     update_tree_version = function(current) {
         // since v2 there is no 'latest' tag
         if (current < 2)
@@ -103,7 +110,8 @@ var mk_vault = function(path) {
                    + " to " + version.repository);
         if (current < 1) {
             // state tracking file is appeared in version 1
-            set_state("new");
+            // all .vault.* are also going to be ignored
+            exclude_service_files();
         }
         os.write_file(files.version.repository, String(version.repository));
     };
@@ -165,13 +173,6 @@ var mk_vault = function(path) {
 
             os.path.isdir(blob_storage) || os.mkdir(blob_storage);
             init_version("repository");
-        };
-
-        var exclude_service_files = function() {
-            var exclude = vcs.get_local().exclude;
-            exclude.add(".vault.*");
-            exclude.commit();
-            set_state("new");
         };
 
         if (!os.mkdir(path))
