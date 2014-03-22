@@ -228,6 +228,23 @@ var mk_vault = function(path) {
         return false;
     };
 
+    var clear = function(options) {
+        options = options || {};
+        if (!os.path.isDir(path)) {
+            debug.info("Path", path, "is not a dir");
+            return false;
+        }
+        if (is_invalid() && !options.clear_invalid) {
+            debug.info("Can't clean invalid vault implicitely");
+            return false;
+        }
+        if (options.destroy) {
+            debug.info("Destroying vault storage at " + path);
+            return !os.rmtree(path) && !os.path.exists(path);
+        }
+        return false;
+    };
+
     var status_dump = function(status) {
         return util.map(status, function(item) {
             return item.toString();
@@ -546,8 +563,9 @@ var mk_vault = function(path) {
         register : register,
         unregister : unregister,
         unit_path : unit_path,
-        info: { files : Object.create(filenames) },
-        state : { get : get_state, set : set_state }
+        info : { files : Object.create(filenames) },
+        state : { get : get_state, set : set_state },
+        clear : clear
     });
 };
 

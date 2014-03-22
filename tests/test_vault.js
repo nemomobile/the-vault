@@ -178,4 +178,20 @@ fixture.addTest('simple_blobs', function() {
 
 });
 
+fixture.addTest('clear', function() {
+    os.rmtree(home);
+    os.mkdir(home);
+    vault_init();
+    assert.ok(os.path.exists(vault.root), "No vault before");
+    assert.ok(!vault.clear(), "W/o params do nothing");
+    assert.ok(os.path.exists(vault.root), "Vault should not be removed");
+    assert.ok(vault.clear({destroy: true}), "Should destroy valid valut");
+    assert.ok(!os.path.exists(vault.root), "Vault should not removed");
+    assert.ok(os.mkdir(vault_dir));
+    assert.ok(!vault.clear({destroy: true}), "Should not destroy invalid vault");
+    assert.ok(os.path.exists(vault.root), "Invalid vault should not be removed");
+    assert.ok(vault.clear({destroy: true, clear_invalid: true}), "Should destroy invalid vault");
+    assert.ok(!os.path.exists(vault.root), "Invalid vault should be removed");
+});
+
 fixture.execute();
