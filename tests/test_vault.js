@@ -133,6 +133,24 @@ fixture.addTest('config_update', function() {
                         , vault_config));
 });
 
+var do_backup = function() {
+    var is_started = true, is_failed = false;
+    vault.backup(home, {}, function(progress) {
+        switch(progress.status) {
+            case "fail":
+            is_failed = true;
+            break;
+            case "begin":
+            is_started = true;
+            break;
+            default:
+            break;
+        }
+    });
+    assert.ok(is_started, "backup was not started");
+    assert.ok(!is_failed, "backup is failed");
+};
+
 fixture.addTest('simple_blobs', function() {
     var vault_config;
     os.rmtree(home);
@@ -150,21 +168,9 @@ fixture.addTest('simple_blobs', function() {
     assert.ok(os.path.isdir(unit1_dir), "unit1 is prepared")
     assert.ok(os.path.isfile(unit1_blob), "unit1 blob is prepared")
 
-    var is_started = true, is_failed = false;
-    vault.backup(home, {}, function(progress) {
-        switch(progress.status) {
-            case "fail":
-            is_failed = true;
-            break;
-            case "begin":
-            is_started = true;
-            break;
-            default:
-            break;
-        }
-    });
-    assert.ok(is_started, "backup was not started");
-    assert.ok(!is_failed, "backup is failed");
+    assert.equal(vault.snapshots.list().length, 0, "No snapshots yet");
+    do_backup();
+    assert.equal(vault.snapshots.list().length, 1, "Added 1 snapshot");
     assert.ok(os.path.isdir(unit1_dir), "unit1 is still here");
     assert.ok(os.path.isfile(unit1_blob), "unit1 blob is still here");
     var unit1_vault = vault.unit_path('unit1');
@@ -180,6 +186,8 @@ fixture.addTest('simple_blobs', function() {
 
 fixture.addTest('clear', function() {
     os.rmtree(home);
+
+    // valid vault
     os.mkdir(home);
     vault_init();
     assert.ok(os.path.exists(vault.root), "No vault before");
@@ -187,11 +195,29 @@ fixture.addTest('clear', function() {
     assert.ok(os.path.exists(vault.root), "Vault should not be removed");
     assert.ok(vault.clear({destroy: true}), "Should destroy valid valut");
     assert.ok(!os.path.exists(vault.root), "Vault should not removed");
+
+    // invalid vault
     assert.ok(os.mkdir(vault_dir));
     assert.ok(!vault.clear({destroy: true}), "Should not destroy invalid vault");
     assert.ok(os.path.exists(vault.root), "Invalid vault should not be removed");
     assert.ok(vault.clear({destroy: true, clear_invalid: true}), "Should destroy invalid vault");
     assert.ok(!os.path.exists(vault.root), "Invalid vault should be removed");
+
+    // vault with snapshots
+    os.mkdir(home);
+    vault_init();
+    register_unit('unit1', false);
+
+    var unit1_dir = os.path(home, 'unit1');
+    os.mkdir(unit1_dir);
+    var unit1_blob = os.path(unit1_dir, 'blob1');
+    os.write_file(unit1_blob, "1\n2\n3\n");
+    assert.equal(vault.snapshots.list().length, 0, "No snapshots yet");
+    do_backup();
+    assert.equal(vault.snapshots.list().length, 1, "Added 1 snapshot");
+    assert.ok(!vault.clear({destroy: true}), "Should not destroy vault with snapshots");
+    assert.ok(vault.clear({destroy: true, ignore_snapshots: true}), "Should destroy vault with snapshots");
+    assert.ok(!os.path.exists(vault.root), "Vault should be removed");
 });
 
 fixture.execute();

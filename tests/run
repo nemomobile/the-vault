@@ -17,6 +17,7 @@ if [ "`pwd`" != "$SRCROOT/tests" ]; then
 fi
 
 for i in vault unit; do
+    echo "Test $i"
     $EXEC test_$i.js
     if [ $? -ne 0 ]; then
         exit 1;

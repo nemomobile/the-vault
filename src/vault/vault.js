@@ -230,17 +230,32 @@ var mk_vault = function(path) {
 
     var clear = function(options) {
         options = options || {};
+        var debug_info = debug.info.curry("vault.clear:");
+        var destroy = function() {
+            return !os.rmtree(path) && !os.path.exists(path);
+        };
         if (!os.path.isDir(path)) {
-            debug.info("Path", path, "is not a dir");
+            debug_info("Path", path, "is not a dir");
             return false;
         }
-        if (is_invalid() && !options.clear_invalid) {
-            debug.info("Can't clean invalid vault implicitely");
-            return false;
+        var invalid = is_invalid();
+        if (invalid) {
+            if (!options.clear_invalid) {
+                debug_info("Can't clean invalid vault implicitely", util.dump("INFO", invalid));
+                return false;
+            }
+            if (options.destroy) {
+                debug_info("Destroying invalid vault at " + path);
+                return destroy();
+            }
         }
         if (options.destroy) {
-            debug.info("Destroying vault storage at " + path);
-            return !os.rmtree(path) && !os.path.exists(path);
+            if (!options.ignore_snapshots && snapshots.list().length) {
+                debug_info("Can't ignore snapshots", path);
+                return false;
+            }
+            debug_info("Destroying vault storage at " + path);
+            return destroy();
         }
         return false;
     };
