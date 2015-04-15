@@ -70,6 +70,13 @@ function status
     sep "ls:$1:.modules"
     ls -al .modules
     find .modules -name '*.json' -exec echo "@cat:$1:{}@" \; -exec cat {} \; -exec echo \;
+    sep "ls:$1:.units"
+    ls -al .units
+    find .units -name '*.json' -exec echo "@cat:$1:{}@" \; -exec cat {} \; -exec echo \;
+    dir=/var/lib/the-vault
+    sep "ls:$1:$dir"
+    ls -al $dir
+    find $dir -name '*.json' -exec echo "@cat:$1:{}@" \; -exec cat {} \; -exec echo \;
 }
 
 sep version
