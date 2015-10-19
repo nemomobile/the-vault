@@ -1,5 +1,0 @@
-PROJECT(MER_VAULT NONE)
-cmake_minimum_required(VERSION 2.8)
-configure_file(the-vault.in the-vault @ONLY)
-install(PROGRAMS the-vault DESTINATION bin)
-add_subdirectory(src)
